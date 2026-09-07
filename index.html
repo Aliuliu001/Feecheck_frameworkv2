@@ -13,104 +13,187 @@
   <!-- Styles -->
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body x-data="appComponent()" x-cloak @keydown.escape="showModal = false">
 
   <!-- Header -->
   <header id="app-header">
     <div class="header-logo">
       <div class="logo-icon">J</div>
       <h1>Joy Fee Check</h1>
-      <span class="version-badge">v1.0</span>
+      <span class="version-badge">v2.0 Alpine</span>
     </div>
     <div class="header-actions">
-      <span id="current-date"></span>
+      <span x-text="new Date().toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' })"></span>
     </div>
   </header>
 
   <!-- Navigation / Tab Bar -->
   <nav id="tab-bar">
-    <button class="tab-btn active" data-tab="import-tab">
+    <button class="tab-btn" 
+            :class="{ 'active': $store.appState.activeTab === 'import-tab' }"
+            @click="switchTab('import-tab')">
       <span class="tab-icon">📥</span> Import Dữ Liệu
     </button>
-    <button class="tab-btn" data-tab="exception-tab">
+    <button class="tab-btn" 
+            :class="{ 'active': $store.appState.activeTab === 'exception-tab' }"
+            @click="switchTab('exception-tab')">
       <span class="tab-icon">⚠️</span> Ngoại lệ
-      <span class="counter-badge" id="exception-counter" style="display: none;">0</span>
+      <span class="counter-badge" 
+            x-show="$store.appState.exceptionCount > 0" 
+            x-text="$store.appState.exceptionCount"></span>
     </button>
-    <button class="tab-btn" data-tab="report-tab">
+    <button class="tab-btn" 
+            :class="{ 'active': $store.appState.activeTab === 'report-tab' }"
+            @click="switchTab('report-tab')">
       <span class="tab-icon">📊</span> Báo cáo Đối soát
     </button>
-    <button class="tab-btn" data-tab="accounting-tab">
+    <button class="tab-btn" 
+            :class="{ 'active': $store.appState.activeTab === 'accounting-tab' }"
+            @click="switchTab('accounting-tab')">
       <span class="tab-icon">📋</span> Báo cáo kế toán
     </button>
-    <button class="tab-btn" data-tab="settings-tab">
+    <button class="tab-btn" 
+            :class="{ 'active': $store.appState.activeTab === 'settings-tab' }"
+            @click="switchTab('settings-tab')">
       <span class="tab-icon">⚙️</span> Cài đặt
     </button>
-    <button class="tab-btn" data-tab="guide-tab">
+    <button class="tab-btn" 
+            :class="{ 'active': $store.appState.activeTab === 'guide-tab' }"
+            @click="switchTab('guide-tab')">
       <span class="tab-icon">📖</span> Hướng dẫn
     </button>
-    <div class="tab-indicator"></div>
   </nav>
 
   <!-- Main Content Area -->
   <main id="main-content">
     
     <!-- TAB 1: Import -->
-    <section id="import-tab" class="tab-content active">
+    <section id="import-tab" 
+             class="tab-content" 
+             x-show="$store.appState.activeTab === 'import-tab'"
+             x-transition>
       <div class="settings-panel card glass-card">
         <h3>Cài đặt đối soát</h3>
         <div class="settings-form">
           <div class="form-group">
             <label for="month-selector">Tháng đối soát</label>
-            <input type="month" id="month-selector">
+            <input type="month" 
+                   id="month-selector"
+                   x-model="$store.appState.monthYear">
           </div>
           <div class="form-group">
             <label for="default-fee">Học phí mặc định (VNĐ)</label>
-            <input type="number" id="default-fee" value="800000">
+            <input type="number" 
+                   id="default-fee"
+                   x-model.number="$store.appState.defaultFee">
           </div>
         </div>
       </div>
 
       <div class="drop-zones-grid">
-        <div class="drop-zone card glass-card" id="drop-ds-hs">
+        <!-- DS Học sinh -->
+        <div class="drop-zone card glass-card" 
+             :class="{ 'success': $store.appState.importStatus.dsHocSinh }"
+             @click="$refs.fileDs.click()"
+             @dragover.prevent
+             @drop.prevent="handleFileImport($event.dataTransfer, 'dsHocSinh')">
           <div class="drop-icon">👥</div>
           <h4>📋 DS Học sinh tổng (Google Trang tính)</h4>
-          <p class="status-text warning">Chưa import</p>
-          <input type="file" accept=".xlsx, .xls, .csv" hidden>
+          <p class="status-text" :class="$store.appState.importStatus.dsHocSinh ? 'success' : 'warning'">
+            <span x-show="!$store.appState.importStatus.dsHocSinh">Chưa import</span>
+            <span x-show="$store.appState.importStatus.dsHocSinh">✅ Đã import (<span x-text="$store.appState.students.length"></span> HS)</span>
+          </p>
+          <input type="file" 
+                 x-ref="fileDs"
+                 accept=".xlsx, .xls, .csv" 
+                 @change="handleFileImport($event, 'dsHocSinh')"
+                 hidden>
           <p class="help-text" style="font-size: 0.7rem; margin-top: 8px; color: var(--text-secondary);">Danh sách master học sinh. Nguồn gốc dữ liệu, cập nhật liên tục.</p>
         </div>
         
-        <div class="drop-zone card glass-card" id="drop-vietinbank">
+        <!-- VietinBank -->
+        <div class="drop-zone card glass-card"
+             :class="{ 'success': $store.appState.importStatus.vietinBank }"
+             @click="$refs.fileVtb.click()"
+             @dragover.prevent
+             @drop.prevent="handleFileImport($event.dataTransfer, 'vietinBank')">
           <div class="drop-icon">🏦</div>
           <h4>Sao kê VietinBank</h4>
-          <p class="status-text warning">Chưa import</p>
-          <input type="file" accept=".xlsx, .xls, .csv" hidden>
+          <p class="status-text" :class="$store.appState.importStatus.vietinBank ? 'success' : 'warning'">
+            <span x-show="!$store.appState.importStatus.vietinBank">Chưa import</span>
+            <span x-show="$store.appState.importStatus.vietinBank">✅ Đã import (<span x-text="$store.appState.vtbTransactions.length"></span> GD)</span>
+          </p>
+          <input type="file" 
+                 x-ref="fileVtb"
+                 accept=".xlsx, .xls, .csv" 
+                 @change="handleFileImport($event, 'vietinBank')"
+                 hidden>
         </div>
         
-        <div class="drop-zone card glass-card" id="drop-tpbank">
+        <!-- TPBank -->
+        <div class="drop-zone card glass-card"
+             :class="{ 'success': $store.appState.importStatus.tpBank }"
+             @click="$refs.fileTpb.click()"
+             @dragover.prevent
+             @drop.prevent="handleFileImport($event.dataTransfer, 'tpBank')">
           <div class="drop-icon">🏢</div>
           <h4>Sao kê TPBank (từ ABBYY)</h4>
-          <p class="status-text warning">Chưa import</p>
-          <input type="file" accept=".xlsx, .xls, .csv" hidden>
+          <p class="status-text" :class="$store.appState.importStatus.tpBank ? 'success' : 'warning'">
+            <span x-show="!$store.appState.importStatus.tpBank">Chưa import</span>
+            <span x-show="$store.appState.importStatus.tpBank">✅ Đã import (<span x-text="$store.appState.tpbTransactions.length"></span> GD)</span>
+          </p>
+          <input type="file" 
+                 x-ref="fileTpb"
+                 accept=".xlsx, .xls, .csv" 
+                 @change="handleFileImport($event, 'tpBank')"
+                 hidden>
         </div>
         
-        <div class="drop-zone card glass-card" id="drop-cash">
+        <!-- Tiền mặt -->
+        <div class="drop-zone card glass-card"
+             :class="{ 'success': $store.appState.importStatus.tienMat }"
+             @click="$refs.fileCash.click()"
+             @dragover.prevent
+             @drop.prevent="handleFileImport($event.dataTransfer, 'tienMat')">
           <div class="drop-icon">💵</div>
           <h4>Tiền mặt</h4>
-          <p class="status-text warning">Chưa import</p>
-          <input type="file" accept=".xlsx, .xls, .csv" hidden>
+          <p class="status-text" :class="$store.appState.importStatus.tienMat ? 'success' : 'warning'">
+            <span x-show="!$store.appState.importStatus.tienMat">Chưa import</span>
+            <span x-show="$store.appState.importStatus.tienMat">✅ Đã import (<span x-text="$store.appState.cashPayments.length"></span> dòng)</span>
+          </p>
+          <input type="file" 
+                 x-ref="fileCash"
+                 accept=".xlsx, .xls, .csv" 
+                 @change="handleFileImport($event, 'tienMat')"
+                 hidden>
         </div>
 
-        <div class="drop-zone card glass-card" id="drop-prev-invoice" style="border-color: rgba(255,193,7,0.3);">
+        <!-- File KT tháng trước -->
+        <div class="drop-zone card glass-card" 
+             :class="{ 'success': $store.appState.importStatus.prevInvoice }"
+             @click="$refs.filePrev.click()"
+             @dragover.prevent
+             @drop.prevent="handleFileImport($event.dataTransfer, 'prevInvoice')"
+             style="border-color: rgba(255,193,7,0.3);">
           <div class="drop-icon">📄</div>
           <h4>📄 File Kế toán tháng TRƯỚC</h4>
-          <p class="status-text warning">Chưa import (tùy chọn)</p>
-          <input type="file" accept=".xlsx, .xls, .csv" hidden>
+          <p class="status-text" :class="$store.appState.importStatus.prevInvoice ? 'success' : 'warning'">
+            <span x-show="!$store.appState.importStatus.prevInvoice">Chưa import (tùy chọn)</span>
+            <span x-show="$store.appState.importStatus.prevInvoice">✅ Đã import (<span x-text="$store.appState.prevInvoiceStudents.length"></span> HS)</span>
+          </p>
+          <input type="file" 
+                 x-ref="filePrev"
+                 accept=".xlsx, .xls, .csv" 
+                 @change="handleFileImport($event, 'prevInvoice')"
+                 hidden>
           <p class="help-text" style="font-size: 0.7rem; margin-top: 8px; color: var(--text-secondary);">File Excel Kế toán (2 sheet: DS Thực tế + DS Ghi HĐ). Dùng để so sánh: ai tăng/giảm so với tháng này.</p>
         </div>
       </div>
 
       <div class="action-panel">
-        <button id="btn-start-matching" class="btn btn-primary btn-large" disabled>
+        <button class="btn btn-primary btn-large" 
+                @click="startMatching()"
+                :disabled="!canStartMatching">
           Bắt đầu đối soát
         </button>
         <p class="help-text">Yêu cầu DS Học Sinh và ít nhất 1 nguồn thu để bắt đầu</p>
@@ -119,15 +202,20 @@
 
 
     <!-- TAB 2: Ngoại lệ -->
-    <section id="exception-tab" class="tab-content">
-      <div id="undo-container" style="margin-bottom: 1rem;"></div>
+    <section id="exception-tab" 
+             class="tab-content"
+             x-show="$store.appState.activeTab === 'exception-tab'"
+             x-transition>
       <div class="exception-section card glass-card">
         <div class="section-header">
-          <h3>STK mới chưa map <span class="counter-badge" id="unmapped-stk-count">0</span></h3>
-          <button class="btn btn-sm btn-outline" onclick="App.addFamilyGroupUI()">➕ Nhóm gia đình</button>
+          <h3>STK mới chưa map 
+            <span class="counter-badge" 
+                  x-show="$store.appState.vtbUnmatched?.length > 0"
+                  x-text="$store.appState.vtbUnmatched?.length || 0"></span>
+          </h3>
         </div>
         <div class="table-container">
-          <table id="table-unmapped-stk">
+          <table>
             <thead>
               <tr>
                 <th>STK</th>
@@ -138,7 +226,22 @@
               </tr>
             </thead>
             <tbody>
-              <!-- Dynamic content -->
+              <template x-if="!$store.appState.vtbUnmatched || $store.appState.vtbUnmatched.length === 0">
+                <tr>
+                  <td colspan="5" style="text-align: center; color: var(--text-secondary);">Không có STK mới</td>
+                </tr>
+              </template>
+              <template x-for="tx in ($store.appState.vtbUnmatched || [])" :key="tx.debitAccount">
+                <tr>
+                  <td x-text="tx.debitAccount"></td>
+                  <td x-text="tx.debitAccountName"></td>
+                  <td x-text="$formatCurrency(tx.credit)"></td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem;">Cần gán MSHS</td>
+                  <td>
+                    <button class="btn btn-sm btn-primary">Gán MSHS</button>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -146,11 +249,14 @@
 
       <div class="exception-section card glass-card mt-4">
         <div class="section-header">
-          <h3>GD TPBank chưa xác định <span class="counter-badge" id="unidentified-tpb-count">0</span></h3>
-          <button class="btn btn-sm btn-outline" onclick="App.addFamilyGroupUI()">➕ Nhóm gia đình</button>
+          <h3>GD TPBank chưa xác định 
+            <span class="counter-badge" 
+                  x-show="$store.appState.tpbUnmatched?.length > 0"
+                  x-text="$store.appState.tpbUnmatched?.length || 0"></span>
+          </h3>
         </div>
         <div class="table-container">
-          <table id="table-unidentified-tpb">
+          <table>
             <thead>
               <tr>
                 <th>Ngày</th>
@@ -161,28 +267,22 @@
               </tr>
             </thead>
             <tbody>
-              <!-- Dynamic content -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="exception-section card glass-card mt-4">
-        <div class="section-header">
-          <h3>Thay đổi cần sync lên Google Sheets <span class="counter-badge" id="sync-changes-count">0</span></h3>
-        </div>
-        <div class="table-container">
-          <table id="table-sync-changes">
-            <thead>
-              <tr>
-                <th>Loại</th>
-                <th>MSHS</th>
-                <th>Nội dung</th>
-                <th>Đã sync</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Dynamic content -->
+              <template x-if="!$store.appState.tpbUnmatched || $store.appState.tpbUnmatched.length === 0">
+                <tr>
+                  <td colspan="5" style="text-align: center; color: var(--text-secondary);">Không có GD chưa xác định</td>
+                </tr>
+              </template>
+              <template x-for="tx in ($store.appState.tpbUnmatched || [])" :key="tx.date + tx.description">
+                <tr>
+                  <td x-text="$formatDate(tx.date)"></td>
+                  <td x-text="tx.description"></td>
+                  <td x-text="$formatCurrency(tx.amount)"></td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem;">Cần thêm keyword</td>
+                  <td>
+                    <button class="btn btn-sm btn-primary">Gán MSHS</button>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -191,62 +291,65 @@
 
 
     <!-- TAB 3: Báo cáo Đối soát -->
-    <section id="report-tab" class="tab-content">
+    <section id="report-tab" 
+             class="tab-content"
+             x-show="$store.appState.activeTab === 'report-tab'"
+             x-transition>
       <div class="summary-cards">
         <div class="summary-card card">
           <div class="card-icon">👥</div>
           <div class="card-info">
             <span class="card-label">Tổng HS</span>
-            <span class="card-value" id="sum-total-hs">0</span>
+            <span class="card-value" x-text="reportStats.totalStudents || 0"></span>
           </div>
         </div>
         <div class="summary-card card success">
           <div class="card-icon">✅</div>
           <div class="card-info">
             <span class="card-label">Đã đóng</span>
-            <span class="card-value" id="sum-paid">0</span>
+            <span class="card-value" x-text="reportStats.paidCount || 0"></span>
           </div>
         </div>
         <div class="summary-card card error">
           <div class="card-icon">❌</div>
           <div class="card-info">
             <span class="card-label">Chưa đóng</span>
-            <span class="card-value" id="sum-unpaid">0</span>
+            <span class="card-value" x-text="reportStats.unpaidCount || 0"></span>
           </div>
         </div>
         <div class="summary-card card warning">
           <div class="card-icon">⚠️</div>
           <div class="card-info">
             <span class="card-label">Đóng thiếu</span>
-            <span class="card-value" id="sum-partial">0</span>
+            <span class="card-value" x-text="reportStats.partialCount || 0"></span>
           </div>
         </div>
         <div class="summary-card card info">
           <div class="card-icon">🔵</div>
           <div class="card-info">
             <span class="card-label">Đóng dư</span>
-            <span class="card-value" id="sum-overpaid">0</span>
+            <span class="card-value" x-text="reportStats.overpaidCount || 0"></span>
           </div>
         </div>
         <div class="summary-card card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
           <div class="card-icon">📦</div>
           <div class="card-info">
             <span class="card-label">Đóng gói</span>
-            <span class="card-value" id="sum-package">0</span>
+            <span class="card-value" x-text="reportStats.packageCount || 0"></span>
           </div>
         </div>
         <div class="summary-card card purple">
           <div class="card-icon">💰</div>
           <div class="card-info">
             <span class="card-label">Tổng thu</span>
-            <span class="card-value" id="sum-total-money">0 ₫</span>
+            <span class="card-value" x-text="$formatCurrency(reportStats.totalMoney || 0)"></span>
           </div>
         </div>
       </div>
 
       <div class="filters-bar card glass-card">
         <div class="filter-group">
-          <select id="filter-status">
+          <select x-model="filters.status" @change="applyFilters()">
             <option value="all">Tất cả trạng thái</option>
             <option value="Đã đóng">Đã đóng</option>
             <option value="Chưa đóng">Chưa đóng</option>
@@ -255,30 +358,31 @@
           </select>
         </div>
         <div class="filter-group">
-          <select id="filter-class">
+          <select x-model="filters.className" @change="applyFilters()">
             <option value="all">Tất cả lớp</option>
           </select>
         </div>
         <div class="filter-group">
-          <select id="filter-teacher">
+          <select x-model="filters.teacher" @change="applyFilters()">
             <option value="all">Tất cả GV</option>
           </select>
         </div>
         <div class="filter-group search-group">
-          <input type="text" id="search-report" placeholder="Tìm MSHS, Tên...">
+          <input type="text" 
+                 x-model="filters.searchText" 
+                 @input="applyFilters()"
+                 placeholder="Tìm MSHS, Tên...">
         </div>
         <div class="filter-group">
-          <button class="btn btn-sm btn-outline" onclick="App.runMatching(true)">🔄 Refresh</button>
-          <button class="btn btn-sm btn-outline" onclick="App.addFamilyGroupUI()">➕ Nhóm gia đình</button>
-          <button class="btn btn-sm btn-outline" onclick="App.findStudent()" title="Tìm HS theo MSHS hoặc tên">🔍 Find</button>
+          <button class="btn btn-sm btn-outline" @click="runMatching()">🔄 Refresh</button>
         </div>
       </div>
 
       <div class="table-container card glass-card mt-4">
-        <table id="table-report">
+        <table>
           <thead>
             <tr>
-              <th style="width:40px">+</th>
+              <th style="width:40px">STT</th>
               <th>MSHS</th>
               <th>Họ tên</th>
               <th>Lớp</th>
@@ -294,66 +398,81 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Dynamic content -->
+            <template x-if="!$store.appState.matchingDone">
+              <tr>
+                <td colspan="13" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                  Chưa có dữ liệu đối soát. Vui lòng import dữ liệu và bắt đầu đối soát.
+                </td>
+              </tr>
+            </template>
+            <template x-if="$store.appState.matchingDone && filteredReportRows.length === 0">
+              <tr>
+                <td colspan="13" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                  Không tìm thấy kết quả phù hợp với bộ lọc.
+                </td>
+              </tr>
+            </template>
+            <template x-for="(row, index) in filteredReportRows" :key="row.mshs + '-' + index">
+              <tr>
+                <td x-text="index + 1"></td>
+                <td x-text="row.mshs"></td>
+                <td x-text="row.hoTen"></td>
+                <td x-text="row.lop"></td>
+                <td x-text="row.giaoVien"></td>
+                <td x-text="$formatCurrency(row.tongHP)"></td>
+                <td x-text="$formatCurrency(row.chuyenKhoanVTB)"></td>
+                <td x-text="$formatCurrency(row.tienMat)"></td>
+                <td x-text="$formatCurrency(row.chuyenKhoanTPB)"></td>
+                <td x-text="$formatCurrency(row.tongDaDong)"></td>
+                <td x-html="getNguonCK(row)"></td>
+                <td>
+                  <span class="status-badge" :class="getStatusBadge(row.trangThai)" x-text="row.trangThai"></span>
+                </td>
+                <td x-text="row.ghiChu" style="font-size: 0.85rem; color: var(--text-secondary);"></td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
 
       <div class="action-panel mt-4" style="flex-direction: row; justify-content: center; gap: 8px; flex-wrap: wrap;">
-        <button id="btn-export-report" class="btn btn-primary">
+        <button class="btn btn-primary" @click="exportReport()">
           📥 Xuất Excel Báo cáo
         </button>
-        <button id="btn-export-full" class="btn btn-secondary">
-          📥 Xuất Báo cáo Excel Full
+        <button class="btn btn-secondary" @click="exportBackup()">
+          💾 Backup
         </button>
-        <button id="btn-export-nhac-ph" class="btn btn-outline" style="border-color: var(--warning-color); color: var(--warning-color);">
-          📋 Xuất DS Nhắc Phí
-        </button>
-        <button class="btn btn-sm btn-outline" onclick="App.exportBackup()" title="Tải file backup phiên làm việc">💾 Backup</button>
-        <button class="btn btn-sm btn-outline" onclick="document.getElementById('import-backup-input').click()" title="Phục hồi từ file backup">📂 Restore</button>
-        <input type="file" id="import-backup-input" accept=".json" style="display:none" onchange="App.importBackup(this)">
-      </div>
-
-      <!-- Học sinh tạm ngưng -->
-      <div class="mt-4">
-        <div class="flex-between">
-          <h3>⏸️ Học sinh tạm ngưng tháng này</h3>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-sm btn-warning" onclick="App.suspendUnpaidStudents()" title="Xem danh sách HS chưa đóng và chọn ai cần tạm ngưng">📋 DS Chưa đóng → Tạm ngưng</button>
-            <button class="btn btn-sm btn-primary" onclick="App.suspendStudentUI()" title="Tìm MSHS và tạm ngưng thủ công">➕ Thêm thủ công</button>
-          </div>
-        </div>
-        <p class="text-sm text-secondary mb-2">HS tạm ngưng sẽ KHÔNG hiện trong báo cáo chính và KHÔNG báo "Chưa đóng".</p>
-        <div class="table-container card glass-card">
-          <table id="table-suspended">
-            <thead>
-              <tr>
-                <th>MSHS</th>
-                <th>Họ tên</th>
-                <th>Lớp tạm ngưng</th>
-                <th>Tháng</th>
-                <th>Ghi chú</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
     </section>
 
 
-
-    <!-- TAB: Báo cáo Kế toán (5 sub-tabs) -->
-    <section id="accounting-tab" class="tab-content">
+    <!-- TAB 4: Báo cáo Kế toán -->
+    <section id="accounting-tab" 
+             class="tab-content"
+             x-show="$store.appState.activeTab === 'accounting-tab'"
+             x-transition>
       <div class="sub-tab-bar" style="flex-wrap: wrap;">
-        <button class="sub-tab-btn active" data-subtab="acc-tab1">📋 DS HĐ Tháng trước</button>
-        <button class="sub-tab-btn" data-subtab="acc-tab2">🏦 DS CK VTB Tháng này</button>
-        <button class="sub-tab-btn" data-subtab="acc-tab3">📉 Giảm bớt</button>
-        <button class="sub-tab-btn" data-subtab="acc-tab4">🛑 Stop - nghỉ học</button>
-        <button class="sub-tab-btn" data-subtab="acc-tab5">📈 Tăng mới</button>
-        <button class="sub-tab-btn" data-subtab="acc-tab6">⚠️ Chuyển tiền sai</button>
-        <button class="sub-tab-btn" data-subtab="acc-tab7">📋 Tổng hợp</button>
+        <button class="sub-tab-btn" 
+                :class="{ 'active': activeAccTab === 'acc-tab1' }"
+                @click="activeAccTab = 'acc-tab1'">📋 DS HĐ Tháng trước</button>
+        <button class="sub-tab-btn" 
+                :class="{ 'active': activeAccTab === 'acc-tab2' }"
+                @click="activeAccTab = 'acc-tab2'">🏦 DS CK VTB Tháng này</button>
+        <button class="sub-tab-btn" 
+                :class="{ 'active': activeAccTab === 'acc-tab3' }"
+                @click="activeAccTab = 'acc-tab3'">📉 Giảm bớt</button>
+        <button class="sub-tab-btn" 
+                :class="{ 'active': activeAccTab === 'acc-tab4' }"
+                @click="activeAccTab = 'acc-tab4'">🛑 Stop - nghỉ học</button>
+        <button class="sub-tab-btn" 
+                :class="{ 'active': activeAccTab === 'acc-tab5' }"
+                @click="activeAccTab = 'acc-tab5'">📈 Tăng mới</button>
+        <button class="sub-tab-btn" 
+                :class="{ 'active': activeAccTab === 'acc-tab6' }"
+                @click="activeAccTab = 'acc-tab6'">⚠️ Chuyển tiền sai</button>
+        <button class="sub-tab-btn" 
+                :class="{ 'active': activeAccTab === 'acc-tab7' }"
+                @click="activeAccTab = 'acc-tab7'">📋 Tổng hợp</button>
       </div>
 
       <!-- Summary cards -->
@@ -362,60 +481,60 @@
           <div class="card-icon">📋</div>
           <div class="card-info">
             <span class="card-label">DS HĐ tháng trước</span>
-            <span class="card-value" id="acc-count-tab1">0</span>
+            <span class="card-value" x-text="$store.appState.accountingData.tab1?.length || 0"></span>
           </div>
         </div>
         <div class="summary-card card success">
           <div class="card-icon">🏦</div>
           <div class="card-info">
             <span class="card-label">CK VTB tháng này</span>
-            <span class="card-value" id="acc-count-tab2">0</span>
+            <span class="card-value" x-text="$store.appState.accountingData.tab2?.length || 0"></span>
           </div>
         </div>
         <div class="summary-card card warning">
           <div class="card-icon">📉</div>
           <div class="card-info">
             <span class="card-label">Giảm bớt</span>
-            <span class="card-value" id="acc-count-tab3">0</span>
+            <span class="card-value" x-text="$store.appState.accountingData.tab3?.length || 0"></span>
           </div>
         </div>
         <div class="summary-card card error">
           <div class="card-icon">🛑</div>
           <div class="card-info">
             <span class="card-label">Stop - nghỉ học</span>
-            <span class="card-value" id="acc-count-tab4">0</span>
+            <span class="card-value" x-text="$store.appState.accountingData.tab4?.length || 0"></span>
           </div>
         </div>
         <div class="summary-card card info">
           <div class="card-icon">📈</div>
           <div class="card-info">
             <span class="card-label">Tăng mới</span>
-            <span class="card-value" id="acc-count-tab5">0</span>
+            <span class="card-value" x-text="$store.appState.accountingData.tab5?.length || 0"></span>
           </div>
         </div>
         <div class="summary-card card" style="background: linear-gradient(135deg, #f85149 0%, #d29922 100%);">
           <div class="card-icon">⚠️</div>
           <div class="card-info">
             <span class="card-label">CK sai tiền</span>
-            <span class="card-value" id="acc-count-tab6">0</span>
+            <span class="card-value" x-text="$store.appState.accountingData.tab6?.length || 0"></span>
           </div>
         </div>
         <div class="summary-card card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
           <div class="card-icon">📋</div>
           <div class="card-info">
             <span class="card-label">Tổng hợp</span>
-            <span class="card-value" id="acc-count-tab7">0</span>
+            <span class="card-value" x-text="$store.appState.accountingData.tab7?.length || 0"></span>
           </div>
         </div>
       </div>
 
       <!-- Sub-tab 1: DS HĐ Tháng trước -->
-      <div id="acc-tab1" class="sub-tab-content active">
+      <div x-show="activeAccTab === 'acc-tab1'" x-transition>
         <div class="card glass-card mt-4">
           <h3>📋 DS HĐ Tháng trước</h3>
           <p class="text-sm text-secondary mb-2">Danh sách gốc từ File Kế toán tháng trước. Đây là nguồn gốc, tất cả HS tháng trước.</p>
           <div class="table-container">
-            <table id="table-acc-tab1">
+            <table>
               <thead>
                 <tr>
                   <th>STT</th>
@@ -425,23 +544,38 @@
                   <th>Học phí</th>
                 </tr>
               </thead>
-              <tbody></tbody>
+              <tbody>
+                <template x-if="!$store.appState.accountingData.tab1 || $store.appState.accountingData.tab1.length === 0">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="(row, idx) in $store.appState.accountingData.tab1" :key="'tab1-' + idx">
+                  <tr>
+                    <td x-text="idx + 1"></td>
+                    <td x-text="row.mshs"></td>
+                    <td x-text="row.hoTen"></td>
+                    <td x-text="row.lop"></td>
+                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                  </tr>
+                </template>
+              </tbody>
             </table>
           </div>
           <div class="mt-3" style="text-align:right;">
-            <button class="btn btn-sm btn-outline" onclick="App.copyToAccTab7(1)">📥 Copy sang Tổng hợp</button>
-            <button class="btn btn-sm btn-primary" onclick="App.exportAccTab(1)">📥 Xuất Excel Tab này</button>
+            <button class="btn btn-sm btn-outline" @click="copyToAccTab7(1)">📥 Copy sang Tổng hợp</button>
+            <button class="btn btn-sm btn-primary" @click="exportAccTab(1)">📥 Xuất Excel Tab này</button>
           </div>
         </div>
       </div>
 
       <!-- Sub-tab 2: DS CK VTB Tháng này -->
-      <div id="acc-tab2" class="sub-tab-content">
+      <div x-show="activeAccTab === 'acc-tab2'" x-transition>
         <div class="card glass-card mt-4">
           <h3>🏦 DS CK VTB Tháng này</h3>
           <p class="text-sm text-secondary mb-2">Học sinh đã chuyển khoản vào TK Công ty VietinBank tháng này.</p>
           <div class="table-container">
-            <table id="table-acc-tab2">
+            <table>
               <thead>
                 <tr>
                   <th>STT</th>
@@ -451,24 +585,38 @@
                   <th>Học phí</th>
                 </tr>
               </thead>
-              <tbody></tbody>
+              <tbody>
+                <template x-if="!$store.appState.accountingData.tab2 || $store.appState.accountingData.tab2.length === 0">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="(row, idx) in $store.appState.accountingData.tab2" :key="'tab2-' + idx">
+                  <tr>
+                    <td x-text="idx + 1"></td>
+                    <td x-text="row.mshs"></td>
+                    <td x-text="row.hoTen"></td>
+                    <td x-text="row.lop"></td>
+                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                  </tr>
+                </template>
+              </tbody>
             </table>
           </div>
           <div class="mt-3" style="text-align:right;">
-            <button class="btn btn-sm btn-outline" onclick="App.copyToAccTab7(2)">📥 Copy sang Tổng hợp</button>
-            <button class="btn btn-sm btn-primary" onclick="App.exportAccTab(2)">📥 Xuất Excel Tab này</button>
+            <button class="btn btn-sm btn-outline" @click="copyToAccTab7(2)">📥 Copy sang Tổng hợp</button>
+            <button class="btn btn-sm btn-primary" @click="exportAccTab(2)">📥 Xuất Excel Tab này</button>
           </div>
         </div>
       </div>
 
-      <!-- Sub-tab 3: Giảm bớt (còn cơ hội) -->
-      <div id="acc-tab3" class="sub-tab-content">
+      <!-- Sub-tab 3: Giảm bớt -->
+      <div x-show="activeAccTab === 'acc-tab3'" x-transition>
         <div class="card glass-card mt-4">
           <h3>📉 Giảm bớt</h3>
           <p class="text-sm text-secondary mb-2">Tháng trước có, tháng này chưa CK. Vẫn còn trong DS Tổng và HP &gt; 0 → cần nhắc/nhắc nợ.</p>
-          <p style="color: var(--accent-yellow); font-size: 13px; font-weight: 500;">(Kế toán thêm vào)</p>
           <div class="table-container">
-            <table id="table-acc-tab3">
+            <table>
               <thead>
                 <tr>
                   <th>STT</th>
@@ -478,34 +626,90 @@
                   <th>Học phí</th>
                 </tr>
               </thead>
-              <tbody></tbody>
+              <tbody>
+                <template x-if="!$store.appState.accountingData.tab3 || $store.appState.accountingData.tab3.length === 0">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="(row, idx) in $store.appState.accountingData.tab3" :key="'tab3-' + idx">
+                  <tr>
+                    <td x-text="idx + 1"></td>
+                    <td x-text="row.mshs"></td>
+                    <td x-text="row.hoTen"></td>
+                    <td x-text="row.lop"></td>
+                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                  </tr>
+                </template>
+              </tbody>
             </table>
           </div>
           <div class="mt-3" style="text-align:right;">
-            <button class="btn btn-sm btn-outline" onclick="App.copyToAccTab7(3)">📥 Copy sang Tổng hợp</button>
-            <button class="btn btn-sm btn-primary" onclick="App.exportAccTab(3)">📥 Xuất Excel Tab này</button>
+            <button class="btn btn-sm btn-outline" @click="copyToAccTab7(3)">📥 Copy sang Tổng hợp</button>
+            <button class="btn btn-sm btn-primary" @click="exportAccTab(3)">📥 Xuất Excel Tab này</button>
           </div>
         </div>
       </div>
 
-      <!-- Sub-tab 4: Stop - nghỉ học (dynamic: choice → confirm → split) -->
-      <div id="acc-tab4" class="sub-tab-content">
+      <!-- Sub-tab 4: Stop - nghỉ học -->
+      <div x-show="activeAccTab === 'acc-tab4'" x-transition>
         <div class="card glass-card mt-4">
           <h3>🛑 Stop - nghỉ học</h3>
           <p class="text-sm text-secondary mb-2">Trong danh sách giảm bớt mà KHÔNG còn trong DS Tổng, hoặc HP = 0.</p>
-          <div id="acc-tab4-body">
-            <!-- Rendered by JS: before confirm = choice table; after confirm = 2 sections -->
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>MSHS</th>
+                  <th>Họ tên</th>
+                  <th>Lớp</th>
+                  <th>Học phí</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!$store.appState.accountingData.tab4 || $store.appState.accountingData.tab4.length === 0">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="(row, idx) in $store.appState.accountingData.tab4" :key="'tab4-' + idx">
+                  <tr>
+                    <td x-text="idx + 1"></td>
+                    <td x-text="row.mshs"></td>
+                    <td x-text="row.hoTen"></td>
+                    <td x-text="row.lop"></td>
+                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                    <td>
+                      <select x-model="tab4Choice[row.mshs]" class="form-control" style="width: auto; font-size: 0.85rem;">
+                        <option value="">Chọn...</option>
+                        <option value="stop">🛑 Nghỉ</option>
+                        <option value="continue">🔄 Vẫn học</option>
+                      </select>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-3" style="text-align:right;">
+            <button class="btn btn-sm btn-primary" 
+                    @click="confirmTab4Split()"
+                    :disabled="!canConfirmStop">
+              Xác nhận phân loại
+            </button>
           </div>
         </div>
       </div>
 
       <!-- Sub-tab 5: Tăng mới -->
-      <div id="acc-tab5" class="sub-tab-content">
+      <div x-show="activeAccTab === 'acc-tab5'" x-transition>
         <div class="card glass-card mt-4">
           <h3>📈 Tăng mới — Tháng này mới CK VTB</h3>
           <p class="text-sm text-secondary mb-2">Học sinh CK VTB tháng này nhưng KHÔNG có trong DS HĐ tháng trước →HS mới.</p>
           <div class="table-container">
-            <table id="table-acc-tab5">
+            <table>
               <thead>
                 <tr>
                   <th>STT</th>
@@ -515,52 +719,118 @@
                   <th>Học phí</th>
                 </tr>
               </thead>
-              <tbody></tbody>
+              <tbody>
+                <template x-if="!$store.appState.accountingData.tab5 || $store.appState.accountingData.tab5.length === 0">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="(row, idx) in $store.appState.accountingData.tab5" :key="'tab5-' + idx">
+                  <tr>
+                    <td x-text="idx + 1"></td>
+                    <td x-text="row.mshs"></td>
+                    <td x-text="row.hoTen"></td>
+                    <td x-text="row.lop"></td>
+                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                  </tr>
+                </template>
+              </tbody>
             </table>
           </div>
           <div class="mt-3" style="text-align:right;">
-            <button class="btn btn-sm btn-outline" onclick="App.copyToAccTab7(5)">📥 Copy sang Tổng hợp</button>
-            <button class="btn btn-sm btn-primary" onclick="App.exportAccTab(5)">📥 Xuất Excel Tab này</button>
+            <button class="btn btn-sm btn-outline" @click="copyToAccTab7(5)">📥 Copy sang Tổng hợp</button>
+            <button class="btn btn-sm btn-primary" @click="exportAccTab(5)">📥 Xuất Excel Tab này</button>
           </div>
         </div>
       </div>
 
-      <!-- Sub-tab 6: Chuyển tiền sai (allocate-then-remainder, independent from Đối soát) -->
-      <div id="acc-tab6" class="sub-tab-content">
+      <!-- Sub-tab 6: Chuyển tiền sai -->
+      <div x-show="activeAccTab === 'acc-tab6'" x-transition>
         <div class="card glass-card mt-4">
           <h3>⚠️ Chuyển tiền sai</h3>
-          <p class="text-sm text-secondary mb-2">Thuật toán "Dò và chia tiền" — mỗi gia đình 1 dòng. Dùng HP_default cho mọi thành viên (không biết học mấy lớp). Tab này CẢNH BÁO để kế toán soát tay, không phải kết luận cuối cùng. Kết quả có thể khác Tab Đối soát (vì Đối soát dùng HP thực tế).</p>
-          <div id="acc-tab6-body">
-            <!-- Rendered by JS -->
+          <p class="text-sm text-secondary mb-2">Thuật toán "Dò và chia tiền" — mỗi gia đình 1 dòng.</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>MSHS</th>
+                  <th>Họ tên</th>
+                  <th>Lớp</th>
+                  <th>Học phí</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!$store.appState.accountingData.tab6 || $store.appState.accountingData.tab6.length === 0">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="(row, idx) in $store.appState.accountingData.tab6" :key="'tab6-' + idx">
+                  <tr>
+                    <td x-text="idx + 1"></td>
+                    <td x-text="row.mshs"></td>
+                    <td x-text="row.hoTen"></td>
+                    <td x-text="row.lop"></td>
+                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                    <td x-text="row.ghiChu" style="font-size: 0.85rem;"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
           <div class="mt-3" style="text-align:right;">
-            <button class="btn btn-sm btn-primary" onclick="App.exportAccTab(6)">📥 Xuất Excel Tab này</button>
+            <button class="btn btn-sm btn-primary" @click="exportAccTab(6)">📥 Xuất Excel Tab này</button>
           </div>
         </div>
       </div>
 
-      <!-- Sub-tab 7: Tổng hợp (collection from other tabs) -->
-      <div id="acc-tab7" class="sub-tab-content">
+      <!-- Sub-tab 7: Tổng hợp -->
+      <div x-show="activeAccTab === 'acc-tab7'" x-transition>
         <div class="card glass-card mt-4">
           <h3>📋 Tổng hợp — Tập hợp dữ liệu từ các tab</h3>
           <p class="text-sm text-secondary mb-2">Bấm "📥 Copy sang Tổng hợp" ở bất kỳ tab nào để đưa dữ liệu vào đây.</p>
-          <!-- Tag filter -->
-          <div id="acc-tab7-filter" style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-            <span class="text-sm" style="font-weight:600;">Hiển thị Ghi chú:</span>
-          </div>
-          <div id="acc-tab7-body">
-            <!-- Rendered by JS -->
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>MSHS</th>
+                  <th>Họ tên</th>
+                  <th>Lớp</th>
+                  <th>Học phí</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!$store.appState.accountingData.tab7 || $store.appState.accountingData.tab7.length === 0">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="(row, idx) in $store.appState.accountingData.tab7" :key="'tab7-' + idx">
+                  <tr>
+                    <td x-text="idx + 1"></td>
+                    <td x-text="row.mshs"></td>
+                    <td x-text="row.hoTen"></td>
+                    <td x-text="row.lop"></td>
+                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                    <td x-text="row.ghiChu" style="font-size: 0.85rem;"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
           <div class="mt-3" style="text-align:right;">
-            <button class="btn btn-sm btn-danger" onclick="App.clearAccTab7()">🗑️ Xoá tất cả</button>
-            <button class="btn btn-sm btn-primary" onclick="App.exportAccTab(7)">📥 Xuất Excel Tab này</button>
+            <button class="btn btn-sm btn-primary" @click="exportAccTab(7)">📥 Xuất Excel Tab này</button>
           </div>
         </div>
       </div>
 
       <!-- Export all button -->
       <div class="action-panel mt-4" style="flex-direction: row; justify-content: center; gap: 8px; flex-wrap: wrap;">
-        <button id="btn-export-accounting" class="btn btn-primary">
+        <button class="btn btn-primary" @click="exportAllAccountingTabs()">
           📥 Xuất tất cả (7 tabs)
         </button>
       </div>
@@ -568,192 +838,123 @@
 
 
     <!-- TAB 5: Cài đặt -->
-    <section id="settings-tab" class="tab-content">
-      <div class="grid-2col">
-        <!-- Mapping Data -->
-        <div class="card glass-card">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Dữ liệu Mapping</h3>
-            <div>
-              <button id="btn-export-mapping" class="btn btn-sm btn-primary">Xuất Mapping</button>
-              <button id="btn-import-mapping" class="btn btn-sm btn-outline">Nhập Mapping</button>
-            </div>
+    <section id="settings-tab" 
+             class="tab-content"
+             x-show="$store.appState.activeTab === 'settings-tab'"
+             x-transition>
+      <div class="card glass-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>Dữ liệu Mapping</h3>
+          <div>
+            <button class="btn btn-sm btn-primary" @click="exportMapping()">Xuất Mapping</button>
           </div>
-          
-          <div class="mt-4">
-            <h4>STK Phụ</h4>
-            <div class="table-container compact-table">
-              <table id="table-stk-mapping">
-                <thead>
+        </div>
+        
+        <div class="mt-4">
+          <h4>STK Phụ (<span x-text="stkPhuData.length"></span>)</h4>
+          <div class="table-container compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>MSHS</th>
+                  <th>STK</th>
+                  <th>Tên TK</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="stkPhuData.length === 0">
                   <tr>
-                    <th>MSHS</th>
-                    <th>STK</th>
-                    <th>Tên TK</th>
-                    <th></th>
+                    <td colspan="3" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
                   </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <h4>Từ khóa TPBank</h4>
-            <div class="table-container compact-table">
-              <table id="table-keyword-mapping">
-                <thead>
+                </template>
+                <template x-for="item in stkPhuData" :key="item.stk">
                   <tr>
-                    <th>Từ khóa</th>
-                    <th>MSHS</th>
-                    <th>Tên HS</th>
-                    <th></th>
+                    <td x-text="item.mshs"></td>
+                    <td x-text="item.stk"></td>
+                    <td x-text="item.tenTK"></td>
                   </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
+                </template>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Left column extra: Family groups -->
-        <div class="card glass-card span-2" style="grid-column: 1 / -1;">
-          <div class="flex-between">
-            <h3>Nhóm Gia đình</h3>
-            <button id="btn-add-family" class="btn btn-primary btn-sm">➕ Thêm nhóm</button>
+        <div class="mt-4">
+          <h4>Từ khóa TPBank (<span x-text="keywordData.length"></span>)</h4>
+          <div class="table-container compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Từ khóa</th>
+                  <th>MSHS</th>
+                  <th>Tên HS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="keywordData.length === 0">
+                  <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="item in keywordData" :key="item.keyword">
+                  <tr>
+                    <td x-text="item.keyword"></td>
+                    <td x-text="item.mshs"></td>
+                    <td x-text="item.tenHS"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
-          <p class="text-sm text-secondary mt-2">Dùng khi 1 phụ huynh đóng tiền cho nhiều con. Hệ thống sẽ tự động phân bổ tiền theo học phí riêng của từng cháu.</p>
-          <div class="table-container compact-table mt-3">
-            <table id="table-family-groups">
+        </div>
+
+        <div class="mt-4">
+          <h4>Nhóm Gia đình (<span x-text="familyGroups.length"></span>)</h4>
+          <p class="text-sm text-secondary mt-2">Dùng khi 1 phụ huynh đóng tiền cho nhiều con.</p>
+          <div class="table-container compact-table">
+            <table>
               <thead>
                 <tr>
                   <th>Tên nhóm</th>
                   <th>STK Đại diện</th>
                   <th>Tên PH</th>
                   <th>Thành viên (MSHS)</th>
-                  <th></th>
                 </tr>
               </thead>
-              <tbody></tbody>
+              <tbody>
+                <template x-if="familyGroups.length === 0">
+                  <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="group in familyGroups" :key="group.stk">
+                  <tr>
+                    <td x-text="group.name"></td>
+                    <td x-text="group.stk"></td>
+                    <td x-text="group.parentName"></td>
+                    <td x-text="group.members?.join(', ')"></td>
+                  </tr>
+                </template>
+              </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Package payments -->
-        <div class="card glass-card span-2" style="grid-column: 1 / -1;">
-          <div class="flex-between">
-            <h3>📦 Đóng gói học phí (nhiều tháng)</h3>
-            <button id="btn-add-package" class="btn btn-primary btn-sm">➕ Thêm gói</button>
-          </div>
-          <p class="text-sm text-secondary mt-2">Ghi nhận khi phụ huynh đóng trước nhiều tháng (6 tháng, 1 năm...). Hệ thống sẽ tự động ghi nhận bé đã đóng cho các tháng tương ứng, không báo "chưa đóng".</p>
-          <div class="mt-3" style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
-            <div class="form-group" style="margin: 0;">
-              <label class="text-sm">Giảm % (6 tháng):</label>
-              <input type="number" id="input-pkg-discount-6" class="form-control" value="6" min="0" max="100" style="width: 80px;">
-            </div>
-            <div class="form-group" style="margin: 0;">
-              <label class="text-sm">Giảm % (12 tháng):</label>
-              <input type="number" id="input-pkg-discount-12" class="form-control" value="12" min="0" max="100" style="width: 80px;">
-            </div>
-          </div>
-          <div class="table-container compact-table mt-3">
-            <table id="table-packages">
-              <thead>
-                <tr>
-                  <th>Tên gói</th>
-                  <th>Thành viên (MSHS)</th>
-                  <th>Số tháng</th>
-                  <th>Giảm %</th>
-                  <th>Số tiền giảm</th>
-                  <th>Từ tháng</th>
-                  <th>Đến tháng</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Điều chỉnh học phí -->
-        <div class="card glass-card span-2" style="grid-column: 1 / -1;">
-          <div class="flex-between">
-            <h3>📝 Điều chỉnh học phí (ưu đãi, giảm giá, tạm ngưng...)</h3>
-            <button id="btn-add-adjustment" class="btn btn-primary btn-sm">➕ Thêm điều chỉnh</button>
-          </div>
-          <p class="text-sm text-secondary mb-3">Giảm/gia hạn HP cho HS có hoàn cảnh đặc biệt: giới thiệu bạn mới (-400k), tạm ngưng lớp, miễn giảm... Các điều chỉnh sẽ áp dụng khi đối soát.</p>
-          <div class="table-container compact-table mt-3">
-            <table id="table-adjustments">
-              <thead>
-                <tr>
-                  <th>MSHS</th>
-                  <th>Tên HS</th>
-                  <th>Loại</th>
-                  <th>Số tiền</th>
-                  <th>Tháng</th>
-                  <th>Ghi chú</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Giới thiệu bạn mới -->
-        <div class="card glass-card span-2" style="grid-column: 1 / -1;">
-          <div class="flex-between">
-            <h3>🎁 Giới thiệu bạn mới</h3>
-            <button id="btn-add-referral" class="btn btn-primary btn-sm">➕ Thêm giới thiệu</button>
-          </div>
-          <p class="text-sm text-secondary mb-3">Khi PH giới thiệu HS mới → sau 3 tháng HS mới học → PH được giảm 400k. Hệ thống tự nhắc khi đủ 3 tháng.</p>
-          <div id="referral-alerts"></div>
-          <div class="table-container compact-table mt-3">
-            <table id="table-referrals">
-              <thead>
-                <tr>
-                  <th>PH được giảm (MSHS)</th>
-                  <th>HS mới được giới thiệu</th>
-                  <th>Tháng HS mới bắt đầu</th>
-                  <th>Tháng áp dụng giảm</th>
-                  <th>Trạng thái</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Backup & Logs -->
-        <div>
-          <div class="card glass-card">
-            <h3>Backup & Khôi phục</h3>
-            <div class="status-info mt-3 mb-3">
-              <p>Dữ liệu tháng trước: <span class="badge success" id="status-prev-month">Đã có</span></p>
-              <p>File kế toán tháng trước: <span class="badge" id="status-prev-accounting">Chưa có</span></p>
-              <p>DS Ghi HĐ tháng trước: <span class="badge" id="status-prev-invoice">Chưa có</span></p>
-              <p>Backup gần nhất: <span id="status-last-backup">Chưa có</span></p>
-            </div>
-            
-            <div class="btn-group-vertical">
-              <button id="btn-set-prev-month" class="btn btn-outline">Lưu DS tháng này làm tham chiếu</button>
-              <button id="btn-export-stkphu" class="btn btn-outline">Xuất DS STK phụ (dán vào Google Trang tính)</button>
-              <button id="btn-export-backup" class="btn btn-outline">Xuất backup toàn bộ (JSON)</button>
-              <button id="btn-import-backup" class="btn btn-outline">Nhập backup (JSON)</button>
-            </div>
-          </div>
-
-          <div class="card glass-card mt-4">
-            <h3>Lịch sử thao tác</h3>
-            <ul class="history-log" id="history-log">
-              <!-- Logs go here -->
-            </ul>
+        <div class="mt-4">
+          <h3>Backup & Khôi phục</h3>
+          <div class="btn-group-vertical">
+            <button class="btn btn-outline" @click="exportBackup()">Xuất backup toàn bộ (JSON)</button>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="guide-tab" class="tab-content">
+
+    <!-- TAB 6: Hướng dẫn -->
+    <section id="guide-tab" 
+             class="tab-content"
+             x-show="$store.appState.activeTab === 'guide-tab'"
+             x-transition>
       <div class="card glass-card">
         <h3>📖 Hướng dẫn đối soát học phí — Quy trình từ A-Z</h3>
         <p style="color: var(--text-secondary); margin-top: 8px;">Mở tab này bất cứ lúc nào để nhớ lại cách làm. Cập nhật lần cuối: 21/08/2026.</p>
@@ -803,46 +1004,21 @@
           <h4>🔹 Bước 5: Xuất file</h4>
           <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 2;">
             <li><strong>📥 Xuất Excel Báo cáo:</strong> File đối soát nội bộ → Dùng để tự check.</li>
-            <li><strong>📥 Xuất Báo cáo Excel Full (7 sheets):</strong> Bản sao toàn bộ dữ liệu → <strong>Gửi đồng nghiệp để double-check bằng VLOOKUP.</strong></li>
-            <li><strong>📋 Xuất DS Nhắc Phí:</strong> Danh sách HS chưa đóng/đóng thiếu → Gửi GV để nhắc phụ huynh.</li>
+            <li><strong>💾 Backup:</strong> Sao lưu toàn bộ phiên làm việc.</li>
           </ul>
         </div>
 
         <div class="mt-4" style="background: var(--card-bg); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.05);">
           <h4>🔹 Bước 6: Xử lý Kế toán</h4>
           <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 2;">
-            <li>Tab <strong>Báo cáo Kế toán</strong> → 5 tabs tự động so sánh DS HĐ tháng trước với DS CK VTB tháng này.</li>
+            <li>Tab <strong>Báo cáo Kế toán</strong> → 7 tabs tự động so sánh DS HĐ tháng trước với DS CK VTB tháng này.</li>
             <li><strong>Tab 1 — DS HĐ Tháng trước:</strong> Danh sách gốc từ file import Kế toán.</li>
             <li><strong>Tab 2 — DS CK VTB Tháng này:</strong> HS đã CK vào TK Công ty VietinBank.</li>
-            <li><strong>Tab 3 — Giảm bớt:</strong> Tháng trước có, tháng này chưa CK → cần nhắc/nhắc nợ. Vẫn trong DS Tổng.</li>
-            <li><strong>Tab 4 — Stop - nghỉ học:</strong> Chọn 🛑Nghỉ hoặc 🔄Vẫn học cho từng HS. Bấm Xác nhận →HS "Vẫn học" chuyển sang Tab 3.</li>
+            <li><strong>Tab 3 — Giảm bớt:</strong> Tháng trước có, tháng này chưa CK → cần nhắc/nhắc nợ.</li>
+            <li><strong>Tab 4 — Stop - nghỉ học:</strong> Chọn 🛑Nghỉ hoặc 🔄Vẫn học cho từng HS.</li>
             <li><strong>Tab 5 — Tăng mới:</strong> HS mới CK VTB tháng này mà tháng trước chưa có.</li>
-            <li><strong>Tab 6 — Chuyển tiền sai:</strong> Thuật toán "Dò và chia tiền" — mỗi gia đình 1 dòng, dùng HP_default cho mọi thành viên (không biết học mấy lớp). Tab CẢNH BÁO, không phải kết luận cuối cùng.</li>
-            <li>Mỗi tab có nút <strong>"📥 Xuất Excel Tab này"</strong> — chỉ xuất dữ liệu tab đang xem.</li>
-            <li>Nút <strong>"📥 Xuất tất cả (7 tabs)"</strong> — xuất file Excel 7 sheet.</li>
-          </ul>
-        </div>
-
-        <div class="mt-4" style="background: var(--card-bg); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.05);">
-          <h4>🔹 Bước 7: Đồng bộ & Lưu trữ</h4>
-          <ol style="margin-left: 20px; color: var(--text-secondary); line-height: 2;">
-            <li>Tab <strong>Cài đặt</strong> → Kiểm tra phần <strong>"Thay đổi cần đồng bộ"</strong>: Đây là danh sách STK/Keyword bạn vừa thêm trên app. Tick ✅ sau khi đã cập nhật lên Google Sheets.</li>
-            <li>Bấm <strong>"Xuất Mapping"</strong> → Lưu file <code>joy_mappings.json</code> vào thư mục <code>shared_data/</code> để lần sau app tự nạp.</li>
-            <li>Bấm <strong>"Lưu DS tháng này làm tham chiếu"</strong> → App lưu lại DS tháng này để tháng sau so sánh (phát hiện HS mới/nghỉ).</li>
-            <li>Bấm <strong>"Xuất backup (JSON)"</strong> → Sao lưu dự phòng toàn bộ hệ thống.</li>
-          </ol>
-          <p style="color: var(--warning-color); font-size: 13px; margin-top: 8px;">⚠ <strong>Lưu ý đồng bộ:</strong> Khi thêm STK mới hoặc Nhóm Gia đình trên web app, bạn cần cập nhật ngược lên Google Sheets (thủ công). App hiển thị checklist nhắc nhở ở phần "Thay đổi cần đồng bộ".</p>
-        </div>
-
-        <div class="mt-4" style="background: rgba(255,193,7,0.08); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,193,7,0.15);">
-          <h4 style="color: var(--warning-color);">⚠ Các trường hợp đặc biệt cần lưu ý</h4>
-          <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 2;">
-            <li><strong>Nhóm Gia đình (1 PH đóng cho nhiều con):</strong> Vào tab Cài đặt → "Thêm nhóm" → nhập STK đại diện + danh sách MSHS các con. App sẽ tự chia tiền theo HP từng cháu.</li>
-            <li><strong>HS học 2 lớp (1 MSHS, 2 dòng):</strong> App tự gộp HP 2 lớp lại. Cột ghi chú sẽ hiện "Học 2 lớp". Không cần làm gì thêm.</li>
-            <li><strong>CK vào TK Công ty (VietinBank) lệch HP:</strong> App tự cảnh báo ⚠ trong cột ghi chú. Bạn kiểm tra xem PH chuyển thiếu hay chuyển gộp cho nhiều con.</li>
-            <li><strong>HS nghỉ giữa chừng:</strong> Nếu tháng trước có, tháng này mất → sheet "Thay đổi" tự ghi "Nghỉ học" + "Giảm bớt HĐ".</li>
-            <li><strong>PH chuyển tiền 2 lần trong tháng:</strong> App tự cộng dồn tất cả các giao dịch vào 1 MSHS.</li>
-            <li><strong>Tháng nghỉ lễ (HP khác mặc định):</strong> Chỉnh số tiền ở ô "Học phí mặc định" trước khi đối soát. Hoặc nếu HP đã có sẵn trong file DS HS thì không cần chỉnh.</li>
+            <li><strong>Tab 6 — Chuyển tiền sai:</strong> Thuật toán "Dò và chia tiền".</li>
+            <li><strong>Tab 7 — Tổng hợp:</strong> Tập hợp dữ liệu từ các tab khác.</li>
           </ul>
         </div>
       </div>
@@ -850,55 +1026,87 @@
 
   </main>
 
-  <!-- Global Elements -->
-  
-  <!-- Toasts -->
-  <div id="toast-container"></div>
+  <!-- Toast Container -->
+  <div id="toast-container" 
+       style="position: fixed; top: 80px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 12px;">
+    <template x-for="toast in $store.toasts.items" :key="toast.id">
+      <div class="toast-item" 
+           :class="'toast-' + toast.type"
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="opacity-0 transform translate-x-8"
+           x-transition:enter-end="opacity-100 transform translate-x-0"
+           x-transition:leave="transition ease-in duration-200"
+           x-transition:leave-start="opacity-100"
+           x-transition:leave-end="opacity-0"
+           @click="$store.toasts.remove(toast.id)"
+           style="padding: 12px 20px; background: rgba(30,30,30,0.95); border-radius: 8px; color: #fff; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 280px; border-left: 4px solid;">
+        <span x-text="toast.message"></span>
+      </div>
+    </template>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div x-show="showLoading" 
+       x-transition
+       class="loading-overlay" 
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+    <div class="spinner" style="width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+    <p style="color: #fff; margin-top: 16px; font-size: 16px;">Đang xử lý...</p>
+  </div>
 
   <!-- Modal -->
-  <div class="modal-backdrop" id="global-modal">
-    <div class="modal-content card glass-card">
-      <div class="modal-header">
-        <h3 id="modal-title">Tiêu đề Modal</h3>
-        <button class="btn-close" id="btn-close-modal">&times;</button>
+  <div x-show="showModal" 
+       x-transition
+       @click.self="showModal = false"
+       class="modal-backdrop" 
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998; display: flex; align-items: center; justify-content: center;">
+    <div class="modal-content card glass-card" 
+         style="max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;"
+         @click.stop>
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 16px;">
+        <h3 x-text="modalTitle"></h3>
+        <button @click="showModal = false" class="btn-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
       </div>
-      <div class="modal-body" id="modal-body">
-        <!-- Content injected here -->
-      </div>
-      <div class="modal-footer" id="modal-footer">
-        <button class="btn btn-secondary" id="btn-modal-cancel">Hủy</button>
-        <button class="btn btn-primary" id="btn-modal-confirm">Xác nhận</button>
+      <div class="modal-body" x-html="modalBody"></div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button @click="showModal = false" class="btn btn-secondary">Đóng</button>
+        <button x-show="modalConfirm" @click="modalConfirm(); showModal = false" class="btn btn-primary">Xác nhận</button>
       </div>
     </div>
   </div>
 
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" id="loading-overlay" style="display: none;">
-    <div class="spinner"></div>
-    <p id="loading-text">Đang xử lý...</p>
-  </div>
-
   <!-- Back to Top Button -->
-  <button id="btn-back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:20px;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:opacity .3s;" title="Về đầu trang">⬆</button>
-  <script>
-    (function(){
-      var btn=document.getElementById('btn-back-to-top');
-      window.addEventListener('scroll',function(){
-        btn.style.display=(window.scrollY>300)?'block':'none';
-      });
-    })();
-  </script>
+  <button @click="window.scrollTo({top:0,behavior:'smooth'})" 
+          x-show="window.pageYOffset > 300"
+          x-transition
+          style="position:fixed;bottom:24px;right:24px;z-index:9999;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:20px;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);" 
+          title="Về đầu trang">⬆</button>
 
   <!-- Scripts -->
   <script src="lib/xlsx.full.min.js"></script>
-  <script src="js/datamodel.js?v=3"></script>
-  <script src="js/utils.js?v=3"></script>
-  <script src="js/storage.js?v=3"></script>
-  <script src="js/importer.js?v=3"></script>
-  <script src="js/matcher.js?v=3"></script>
-  <script src="js/reporter.js?v=3"></script>
-  <script src="js/accounting.js?v=3"></script>
-  <script src="js/exporter.js?v=4"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/datamodel.js?v=200"></script>
+  <script src="js/utils.js?v=200"></script>
+  <script src="js/storage.js?v=200"></script>
+  <script src="js/importer.js?v=200"></script>
+  <script src="js/matcher.js?v=200"></script>
+  <script src="js/reporter.js?v=200"></script>
+  <script src="js/accounting.js?v=200"></script>
+  <script src="js/exporter.js?v=200"></script>
+  <script src="js/app.js?v=200"></script>
+  
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- CSS for animations -->
+  <style>
+    [x-cloak] { display: none !important; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .toast-success { border-left-color: var(--success-color, #10b981) !important; }
+    .toast-error { border-left-color: var(--danger-color, #ef4444) !important; }
+    .toast-warning { border-left-color: var(--warning-color, #f59e0b) !important; }
+    .toast-info { border-left-color: var(--info-color, #3b82f6) !important; }
+  </style>
 </body>
 </html>
