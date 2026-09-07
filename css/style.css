@@ -44,6 +44,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Utilities */
@@ -179,13 +180,24 @@ p { font-size: 15px; color: var(--text-muted); margin-bottom: 12px; }
 .btn-large { padding: 16px 48px; font-size: 16px; }
 
 /* Sub Tabs */
-.sub-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.sub-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; background: transparent; padding: 0; }
 .sub-tab {
-  background: transparent; color: var(--text-muted); border: 1px solid var(--border-color);
-  border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+  background: white; color: var(--text-main); border: 2px solid var(--border-color);
+  border-radius: 12px; padding: 10px 18px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
-.sub-tab:hover { border-color: var(--text-main); color: var(--text-main); }
-.sub-tab.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+.sub-tab:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+.sub-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 8px rgba(92,74,58,0.3); }
+
+/* Sub Tab Bar (accounting tabs) - Individual buttons, NO outer border */
+.sub-tab-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; background: transparent; border: none; padding: 0; }
+.sub-tab-btn {
+  background: white; color: var(--text-main); border: 2px solid var(--border-color);
+  border-radius: 12px; padding: 10px 18px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); font-family: inherit;
+}
+.sub-tab-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+.sub-tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 8px rgba(92,74,58,0.3); }
 
 /* Card */
 .card {
@@ -288,7 +300,23 @@ textarea { height: auto; min-height: 80px; padding: 12px; resize: vertical; }
 .compact-table tbody td { padding: 10px 14px; }
 .compact-table tbody tr:nth-child(odd) { background: white; }
 .compact-table tbody tr:nth-child(even) { background: #FAF8F4; }
-.col-amount { font-weight: 700; font-size: 16px; }
+.col-amount { 
+  font-weight: 700; font-size: 16px; 
+  font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; text-align: right;
+}
+/* Money cells - never overflow */
+.data-table td.col-amount, .table-container td.col-amount {
+  white-space: nowrap; text-align: right; min-width: 130px;
+}
+/* All table cells: prevent overflow */
+.data-table td, .table-container td {
+  overflow: hidden; text-overflow: ellipsis; max-width: 280px;
+}
+.data-table td.wrap, .table-container td.wrap {
+  white-space: normal; word-break: break-word; max-width: none;
+}
 
 /* Settings Section Spacing */
 .settings-section { 
