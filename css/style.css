@@ -9,6 +9,8 @@
   --primary: #5C4A3A;
   --primary-light: #E8DCC8;
   --primary-hover: #4A3B2E;
+  --primary-dark: #3E3226;
+  --text-secondary: #8A8478;
   
   /* Semantic Colors */
   --color-green: #2E7D46;
@@ -74,33 +76,35 @@ p { font-size: 15px; color: var(--text-muted); margin-bottom: 12px; }
 
 /* Header */
 #app-header {
-  background-color: var(--bg-card);
-  padding: 16px 48px;
-  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  padding: 20px 48px;
+  border-bottom: 3px solid var(--primary-dark);
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 .header-logo { display: flex; align-items: center; }
 .logo-icon {
-  width: 44px; height: 44px;
-  background: var(--primary);
-  color: white; border-radius: 12px;
-  font-weight: 700; font-size: 22px;
+  width: 48px; height: 48px;
+  background: white;
+  color: var(--primary); border-radius: 12px;
+  font-weight: 700; font-size: 24px;
   display: flex; align-items: center; justify-content: center;
   margin-right: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
-.header-logo h1 { font-size: 22px; font-weight: 600; color: var(--text-main); margin: 0; margin-right: 12px; }
-.version-badge { background: var(--bg-main); color: var(--text-muted); font-size: 12px; padding: 4px 12px; border-radius: 12px; }
-.header-actions { font-size: 15px; color: var(--text-muted); font-weight: 500; }
+.header-logo h1 { font-size: 24px; font-weight: 700; color: white; margin: 0; margin-right: 12px; }
+.version-badge { background: rgba(255,255,255,0.2); color: white; font-size: 12px; padding: 4px 12px; border-radius: 12px; }
+.header-actions { font-size: 15px; color: rgba(255,255,255,0.9); font-weight: 500; }
 
 /* Main Nav */
 #tab-bar {
   background: var(--bg-card); border-bottom: 1px solid var(--border-color);
-  position: sticky; top: 76px; z-index: 99;
+  position: sticky; top: 91px; z-index: 99;
   display: flex; gap: 4px; padding: 0 48px; overflow-x: auto;
 }
 .tab-btn {
@@ -238,24 +242,49 @@ textarea { height: auto; min-height: 80px; padding: 12px; resize: vertical; }
 .status-warn { color: var(--color-yellow); }
 .status-done { color: var(--color-green); }
 
-/* Table */
-.table-container { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-card); }
-.data-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-.data-table thead { background: var(--bg-main); position: sticky; top: 0; z-index: 10; }
-.data-table th {
-  padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; color: var(--text-main);
-  border-bottom: 2px solid var(--border-color); white-space: nowrap;
+/* Table - Notion Style: Framed, Dark Header */
+.table-container { 
+  overflow-x: auto; 
+  border: 2px solid var(--border-color); 
+  border-radius: 16px; 
+  background: var(--bg-card); 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
+  margin-top: 16px;
 }
-.data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.data-table thead { background: var(--primary); position: sticky; top: 0; z-index: 10; }
+.data-table th {
+  padding: 16px 18px; text-align: left; font-weight: 700; font-size: 14px; color: white;
+  border-bottom: 3px solid var(--primary-dark); white-space: nowrap;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.data-table td { padding: 14px 18px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; font-size: 15px; }
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: var(--bg-main); }
+.data-table tbody tr:hover { background: var(--primary-light); }
+.data-table tbody tr:nth-child(even) { background: #FAF8F4; }
+.data-table tbody tr:nth-child(even):hover { background: var(--primary-light); }
+
+/* Plain tables (no .data-table class) - same Notion style */
+.table-container table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.table-container thead { background: var(--primary); position: sticky; top: 0; z-index: 10; }
+.table-container thead th {
+  padding: 16px 18px; text-align: left; font-weight: 700; font-size: 14px; color: white;
+  border-bottom: 3px solid var(--primary-dark); white-space: nowrap;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.table-container tbody td { padding: 14px 18px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; font-size: 15px; }
+.table-container tbody tr:last-child td { border-bottom: none; }
+.table-container tbody tr:hover { background: var(--primary-light); }
+.table-container tbody tr:nth-child(even) { background: #FAF8F4; }
+.table-container tbody tr:nth-child(even):hover { background: var(--primary-light); }
 .col-amount { font-weight: 700; font-size: 16px; }
 
-/* Status Badges - Solid/Filled Style */
+/* Status Badges - Solid/Filled Style, Larger + Bolder */
 .status-badge {
-  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
-  border-radius: var(--radius-badge); font-size: 13px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+  border-radius: var(--radius-badge); font-size: 14px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 .status-paid, .badge-green { background: var(--color-green); color: white; }
 .status-unpaid, .badge-red { background: var(--color-red); color: white; }
@@ -263,6 +292,13 @@ textarea { height: auto; min-height: 80px; padding: 12px; resize: vertical; }
 .status-overpaid, .badge-blue { background: var(--color-blue); color: white; }
 .status-package, .badge-purple { background: var(--color-purple); color: white; }
 .badge-default { background: var(--primary-light); color: var(--primary); }
+
+/* Bank Source Tags - Clear Colors */
+.tag-vtb { background: #1A73E8; color: white; display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 980px; font-size: 13px; font-weight: 700; }
+.tag-tpb { background: #7B1FA2; color: white; display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 980px; font-size: 13px; font-weight: 700; }
+.tag-cash { background: #2E7D46; color: white; display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 980px; font-size: 13px; font-weight: 700; }
+.tag-increase { background: var(--color-green); color: white; display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 980px; font-size: 13px; font-weight: 700; }
+.tag-decrease { background: var(--color-red); color: white; display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 980px; font-size: 13px; font-weight: 700; }
 
 /* Summary Cards (Dashboard) */
 .summary-grid { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 24px; }
