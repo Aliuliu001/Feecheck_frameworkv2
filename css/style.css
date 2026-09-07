@@ -66,10 +66,11 @@ body {
 .text-center { text-align: center; }
 
 /* Typography */
-h1 { font-size: 20px; font-weight: 600; color: var(--text-main); }
-h2 { font-size: 22px; font-weight: 700; color: var(--text-main); margin-bottom: 16px; }
-h3 { font-size: 18px; font-weight: 600; color: var(--text-main); margin-bottom: 12px; }
-p { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+h1 { font-size: 24px; font-weight: 600; color: var(--text-main); }
+h2 { font-size: 26px; font-weight: 700; color: var(--text-main); margin-bottom: 16px; }
+h3 { font-size: 20px; font-weight: 600; color: var(--text-main); margin-bottom: 12px; }
+h4 { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+p { font-size: 15px; color: var(--text-muted); margin-bottom: 12px; }
 
 /* Header */
 .header {
@@ -111,8 +112,64 @@ p { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
 .tab-badge { background: var(--color-red); color: white; font-size: 11px; padding: 2px 6px; border-radius: 10px; font-weight: 600; }
 
 /* Layout */
-.container { padding: 40px 24px; max-width: 1400px; margin: 0 auto; }
+.container { padding: 40px 48px; max-width: 1400px; margin: 0 auto; }
 .fade-in { animation: fadeIn 0.3s ease-out; }
+
+/* Settings Panel */
+.settings-panel { margin-bottom: 24px; }
+.settings-form { display: flex; gap: 24px; flex-wrap: wrap; }
+.settings-form .form-group { min-width: 200px; flex: 1; }
+
+/* Glass Card */
+.glass-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-card); padding: 24px; }
+
+/* Help Text */
+.help-text { font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
+
+/* Status Text */
+.status-text { font-size: 14px; font-weight: 600; margin-top: 12px; }
+.status-text.warning { color: var(--color-yellow); }
+.status-text.success { color: var(--color-green); }
+
+/* Drop Zone Success State */
+.drop-zone.success { border: 2px solid var(--color-green); background: #f0fdf4; }
+
+/* Section Header */
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-header h3 { margin: 0; }
+
+/* Exception Section */
+.exception-section { margin-bottom: 24px; }
+
+/* Action Panel */
+.action-panel { text-align: center; margin-top: 32px; padding: 24px; }
+
+/* Summary Cards Grid */
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.summary-card { display: flex; align-items: center; gap: 12px; padding: 16px; }
+.summary-card .card-icon { font-size: 24px; }
+.summary-card .card-info { display: flex; flex-direction: column; }
+.summary-card .card-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+.summary-card .card-value { font-size: 20px; font-weight: 700; color: var(--text-main); }
+
+/* Filters Bar */
+.filters-bar { display: flex; gap: 12px; flex-wrap: wrap; padding: 16px 24px; align-items: center; }
+.filter-group { display: flex; gap: 8px; align-items: center; }
+.filter-group select, .filter-group input { height: 36px; font-size: 13px; min-width: 140px; }
+.search-group { flex: 1; }
+.search-group input { width: 100%; min-width: 200px; }
+
+/* Undo Container */
+#undo-container { padding: 12px 16px; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border-color); }
+
+/* Counter Badge */
+.counter-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--color-red); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 700; margin-left: 8px; min-width: 20px; }
+
+/* Tab Content */
+.tab-content { animation: fadeIn 0.3s ease-out; }
+
+/* Button Large */
+.btn-large { padding: 16px 48px; font-size: 16px; }
 
 /* Sub Tabs */
 .sub-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
