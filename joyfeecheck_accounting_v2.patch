@@ -1,0 +1,768 @@
+diff --git a/index.html b/index.html
+index 4aabf4b..7b35fe6 100644
+--- a/index.html
++++ b/index.html
+@@ -336,64 +336,66 @@
+     </section>
+ 
+ 
+-    <!-- TAB 4: Báo cáo Kế toán -->
++    <!-- TAB 4: Báo cáo Kế toán (v2 — 3 sub-tabs) -->
+     <section id="accounting-tab" class="tab-content">
+       <h2>📊 Báo cáo Kế toán</h2>
+       
+       <div class="sub-tab-bar">
+-        <button class="sub-tab-btn active" data-subtab="acc-real">DS Thực tế</button>
+-        <button class="sub-tab-btn" data-subtab="acc-invoice">DS Ghi HĐ</button>
+-        <button class="sub-tab-btn" data-subtab="acc-changes-hd">Thay đổi HĐ</button>
+-        <button class="sub-tab-btn" data-subtab="acc-changes-real">Thay đổi DS</button>
++        <button class="sub-tab-btn active" data-subtab="acc-prev-invoice">DS HĐ Tháng trước</button>
++        <button class="sub-tab-btn" data-subtab="acc-invoice">DS HĐ Tháng hiện tại</button>
++        <button class="sub-tab-btn" data-subtab="acc-changes-hd">Thay đổi</button>
+       </div>
+ 
+-      <!-- TAB 1: DS Thực tế -->
+-      <div id="acc-real" class="sub-tab-content active mt-4">
++      <!-- SUB-TAB 1: DS Hoá đơn Tháng trước -->
++      <div id="acc-prev-invoice" class="sub-tab-content active mt-4">
+         <div class="card glass-card">
+           <div class="flex-between mb-3">
+-            <h3>📋 DS Master Tổng — Tháng 08.2026</h3>
+-            <span class="badge" id="acc-real-count">0 HS</span>
++            <h3>📋 DS Hoá đơn Tháng trước <span id="prev-month-label" class="text-sm text-secondary"></span></h3>
++            <span class="badge" id="prev-hd-count">0 HS</span>
+           </div>
+-          <p class="text-sm text-secondary mb-3">DS Học sinh tổng (import đầu tiên). Danh sách master, nguồn gốc dữ liệu.</p>
++          <p class="text-sm text-secondary mb-3">Danh sách Ghi HĐ từ file Kế toán tháng trước (sheet "Danh sách viết HĐ").</p>
+           <div class="table-container">
+-            <table id="table-acc-real">
+-              <thead><tr><th>STT</th><th>MSHS</th><th>Mã lớp</th><th>Họ tên</th><th>GV</th><th>Học phí</th><th>Ghi chú</th></tr></thead>
++            <table id="table-prev-invoice">
++              <thead><tr><th>STT</th><th>MSHS</th><th>Mã lớp</th><th>Họ tên</th><th>Học phí</th><th>Ghi chú</th></tr></thead>
+               <tbody></tbody>
+             </table>
+           </div>
+         </div>
+       </div>
+ 
+-      <!-- TAB 2: DS Ghi HĐ -->
++      <!-- SUB-TAB 2: DS Hoá đơn tháng hiện tại -->
+       <div id="acc-invoice" class="sub-tab-content mt-4">
+         <div class="card glass-card">
+           <div class="flex-between mb-3">
+-            <h3>📝 Danh sách Phải Ghi HĐ Tháng <span id="invoice-month-label"></span></h3>
++            <h3>📝 DS Hoá đơn Tháng <span id="invoice-month-label"></span></h3>
+             <span class="badge" id="acc-invoice-count">0 HS</span>
+           </div>
+-          <p class="text-sm text-secondary mb-3">HS CK vào TK Công ty (bắt buộc) + HS Kế toán bổ sung thủ công.</p>
++          <p class="text-sm text-secondary mb-3">
++            Nhóm A: Có DS HĐ tháng trước + Còn trong DS Tổng | Nhóm B: Mới CK VTB tháng này
++          </p>
+           <div class="flex gap-3 mb-3 text-sm">
+             <span>📊 Tháng trước: <b id="prev-month-count">0</b> HS</span>
+-            <span>→ Tháng này: <b id="curr-month-count">0</b> HS</span>
+-            <span>| Tổng tiền: <b id="total-amount">0đ</b></span>
++            <span>| Tổng HP: <b id="total-amount">0đ</b></span>
+           </div>
++          <div id="cross-check-info"></div>
+           <div class="table-container">
+             <table id="table-acc-invoice">
+-              <thead><tr><th>STT</th><th>MSHS</th><th>Mã lớp</th><th>Họ tên</th><th>GV</th><th>Học phí</th><th>Ghi chú</th></tr></thead>
++              <thead><tr><th>STT</th><th>MSHS</th><th>Mã lớp</th><th>Họ tên</th><th>GV</th><th>Học phí</th><th>Nguồn / Ghi chú</th></tr></thead>
+               <tbody></tbody>
+             </table>
+           </div>
+         </div>
+       </div>
+ 
+-      <!-- TAB 3: Thay đổi HĐ -->
++      <!-- SUB-TAB 3: Thay đổi -->
+       <div id="acc-changes-hd" class="sub-tab-content mt-4">
++        <h3 class="mb-3">Thay đổi DS Ghi HĐ Tháng <span id="changes-month-label" class="text-sm text-secondary"></span></h3>
+         <div class="card glass-card mb-4">
+           <div class="flex-between mb-3">
+             <h3>📈 TĂNG MỚI</h3>
+             <span class="badge success" id="acc-tang-count">0 HS</span>
+           </div>
+-          <p class="text-sm text-secondary mb-3">HS tháng trước KHÔNG có DS Ghi HĐ, tháng này CÓ (mới CK VTB).</p>
++          <p class="text-sm text-secondary mb-3">HS chưa có DS HĐ tháng trước, tháng này mới CK VTB.</p>
+           <div class="table-container">
+             <table id="table-acc-tang">
+               <thead><tr><th>MSHS</th><th>Họ tên</th><th>Lớp</th><th>Học phí</th><th>Lý do</th></tr></thead>
+@@ -406,10 +408,10 @@
+             <h3>📉 GIẢM BỚT</h3>
+             <span class="badge error" id="acc-giam-count">0 HS</span>
+           </div>
+-          <p class="text-sm text-secondary mb-3">HS tháng trước CÓ DS Ghi HĐ, tháng này KHÔNG còn.</p>
++          <p class="text-sm text-secondary mb-3">HS có DS HĐ tháng trước nhưng tháng này KHÔNG còn trong DS HĐ.</p>
+           <div class="table-container">
+             <table id="table-acc-giam">
+-              <thead><tr><th>MSHS</th><th>Họ tên</th><th>Lớp</th><th>Học phí tháng TRC</th><th>Lý do</th></tr></thead>
++              <thead><tr><th>MSHS</th><th>Họ tên</th><th>Lớp</th><th>Học phí</th><th>Lý do</th></tr></thead>
+               <tbody></tbody>
+             </table>
+           </div>
+@@ -419,38 +421,10 @@
+             <h3>⚠️ CK SAI TIỀN</h3>
+             <span class="badge warning" id="acc-sai-count">0 HS</span>
+           </div>
+-          <p class="text-sm text-secondary mb-3">HS CK VTB sai HP quy định. Cần kiểm tra lại.</p>
++          <p class="text-sm text-secondary mb-3">HS CK VTB tháng này nhưng số tiền ≠ HP thực tế.</p>
+           <div class="table-container">
+             <table id="table-acc-sai">
+-              <thead><tr><th>MSHS</th><th>Họ tên</th><th>Lớp</th><th>HP quy định</th><th>Đã CK</th><th>Chênh lệch</th></tr></thead>
+-              <tbody></tbody>
+-            </table>
+-          </div>
+-        </div>
+-      </div>
+-
+-      <!-- TAB 4: Thay đổi DS -->
+-      <div id="acc-changes-real" class="sub-tab-content mt-4">
+-        <div class="card glass-card mb-3">
+-          <div class="flex-between">
+-            <h3>🔄 Thay đổi DS Tổng</h3>
+-          </div>
+-          <p class="text-sm text-secondary">So sánh: DS HS tổng (import mới nhất) vs DS Thực tế tháng TRƯỚC (trong file Kế toán).</p>
+-          <div class="flex gap-2 mt-3 mb-3">
+-            <select id="filter-thay-doi" class="form-select" style="max-width:200px">
+-              <option value="all">📋 Tất cả</option>
+-              <option value="moi">🆕 Cần thêm vào KT</option>
+-              <option value="nghiHoc">🚫 Không còn trong DS HS</option>
+-              <option value="doiLop">🔄 Đổi lớp</option>
+-              <option value="hpThayDoi">💰 HP thay đổi</option>
+-            </select>
+-            <span class="text-sm" style="line-height:36px; color:var(--text-secondary)" id="thay-doi-summary"></span>
+-          </div>
+-        </div>
+-        <div class="card glass-card">
+-          <div class="table-container">
+-            <table id="table-thay-doi-real">
+-              <thead><tr><th>MSHS</th><th>Họ tên</th><th>Lớp</th><th>HP</th><th>Thay đổi</th><th>Ghi chú</th></tr></thead>
++              <thead><tr><th>MSHS</th><th>Họ tên</th><th>Lớp</th><th>HP thực tế</th><th>Đã CK</th><th>Chênh lệch</th></tr></thead>
+               <tbody></tbody>
+             </table>
+           </div>
+diff --git a/js/accounting.js b/js/accounting.js
+index 0100a5d..c53bf57 100644
+--- a/js/accounting.js
++++ b/js/accounting.js
+@@ -1,5 +1,6 @@
+ /**
+- * JOY FEE CHECK - Accounting Module
++ * JOY FEE CHECK - Accounting Module (v2 — UNION-based invoice classification)
++ * Single shared function classifyInvoiceStudents() drives both Tab 2 and Tab 3.
+  */
+ window.Accounting = {
+   generateThucTe(students) {
+@@ -18,106 +19,158 @@ window.Accounting = {
+     }));
+   },
+ 
+-  generateGhiHD(studentsThucTe, prevMonthHDList, vtbMatchedMSHS) {
+-    const selectedMSHS = new Set();
+-    const rows = [];
+-    for (const s of studentsThucTe) {
+-      const isVTB = vtbMatchedMSHS.has(s.mshs);
+-      const wasInPrevMonth = prevMonthHDList.includes(s.mshs);
+-
+-      // Logic DS Ghi HĐ tháng này:
+-      // 1. Co CK VTB thang nay → ✅ Phai co HĐ (bat buoc)
+-      // 2. Thang TRUOC co trong DS Ghi HĐ → ✅ Giu nguyen (Ke toan da them)
+-      // 3. Khong co ca hai → ❌ Khong co trong DS
+-      const isSelected = isVTB || wasInPrevMonth;
+-
+-      if (isSelected) selectedMSHS.add(s.mshs);
+-
+-      // Tag:
+-      // - isVTB + !wasInPrevMonth → Moi CK VTB thang nay (Tang moi)
+-      // - isVTB + wasInPrevMonth → Giu nguyen (khong tag)
+-      // - !isVTB + wasInPrevMonth → Ke toan them thu cong (Bo sung)
+-      const isBoSung = !isVTB && wasInPrevMonth;
+-      const isTangMoi = isVTB && !wasInPrevMonth;
+-
+-      rows.push({
+-        ...s,
+-        mandatory: isTangMoi,
+-        boSung: isBoSung,
+-        wasInPrevMonth
+-      });
++  /**
++   * UNION-based invoice classification.
++   * Source = UNION(DS_Tong_ThangNay, DS_HD_ThangTruoc)
++   * Each MSHS is classified into exactly one group (priority A > B > C > skip).
++   *
++   * Group A: in prevInvoice AND in currentMaster → present Tab 2, no tag (or "Giữ nguyên")
++   * Group B: NOT in prevInvoice AND has VTB CK this month → present Tab 2, tag "📈 Tăng mới"
++   * Group C: in prevInvoice AND NOT in DS_HD_ThangNay (A∪B) → Tab 3 "📉 Giảm bớt"
++   * Skip: everything else → no Tab 2, no Tab 3
++   *
++   * @param {Array} studentsMaster - DS_Tong_ThangNay (students from import #1)
++   * @param {Array} prevInvoiceStudents - DS_HD_ThangTruoc (from prev invoice file)
++   * @param {Set} vtbMatchedMSHS - MSHS that CK to VTB company account this month
++   * @param {Map} currMap - MSHS → student object
++   * @param {Set} freeTuitionSet - MSHS with HP=0
++   * @param {Object} vtbAmountByMSHS - MSHS → total VTB amount
++   * @returns {Object} { tab2Rows, tab3Changes, classificationMap, tongKyVong, tongCKSai }
++   */
++  classifyInvoiceStudents(studentsMaster, prevInvoiceStudents, vtbMatchedMSHS, currMap, freeTuitionSet, vtbAmountByMSHS) {
++    const dsTongSet = new Set((studentsMaster || []).map(s => s.mshs));
++    const prevHDSet = new Set((prevInvoiceStudents || []).map(s => s.mshs));
++
++    // UNION of all MSHS we need to consider
++    const allMSHS = new Set();
++    for (const s of (studentsMaster || [])) allMSHS.add(s.mshs);
++    for (const s of (prevInvoiceStudents || [])) allMSHS.add(s.mshs);
++
++    const tab2Rows = [];       // Groups A + B
++    const groupA = new Set();  // MSHS in Group A
++    const groupB = new Set();  // MSHS in Group B
++    const classificationMap = new Map(); // mshs → 'A' | 'B' | 'C' | 'skip'
++
++    for (const mshs of allMSHS) {
++      const inPrev = prevHDSet.has(mshs);
++      const inMaster = dsTongSet.has(mshs);
++      const hasVTB = vtbMatchedMSHS.has(mshs);
++      const student = currMap.get(mshs);
++      const hp = student ? (Number(student.hocPhi) || 0) : 0;
++
++      if (inPrev && inMaster) {
++        // GROUP A
++        classificationMap.set(mshs, 'A');
++        groupA.add(mshs);
++        tab2Rows.push({
++          mshs,
++          fullName: student ? student.fullName : mshs,
++          className: student ? student.className : '',
++          teacher: student ? student.teacher : '',
++          hocPhi: hp,
++          group: 'A',
++          tag: '',
++          source: hasVTB ? '💳 CK VTB' : (student ? (student.ghiChu || '') : ''),
++          ghiChu: ''
++        });
++      } else if (!inPrev && hasVTB) {
++        // GROUP B
++        classificationMap.set(mshs, 'B');
++        groupB.add(mshs);
++        tab2Rows.push({
++          mshs,
++          fullName: student ? student.fullName : mshs,
++          className: student ? student.className : '',
++          teacher: student ? student.teacher : '',
++          hocPhi: hp,
++          group: 'B',
++          tag: '📈 Tăng mới',
++          source: '💳 CK VTB tháng này',
++          ghiChu: 'Mới CK vào TK Công ty'
++        });
++      } else if (inPrev && !groupA.has(mshs) && !groupB.has(mshs)) {
++        // GROUP C: in prev but NOT in A∪B → giảm bớt
++        classificationMap.set(mshs, 'C');
++      } else {
++        classificationMap.set(mshs, 'skip');
++      }
++    }
++
++    // Sort Tab 2: A first (by className), then B (by className)
++    tab2Rows.sort((a, b) => {
++      if (a.group !== b.group) return a.group === 'A' ? -1 : 1;
++      const c = (a.className || '').localeCompare(b.className || '');
++      return c !== 0 ? c : a.mshs.localeCompare(b.mshs);
++    });
++
++    // Build Tab 3: Changes
++    const tab3Changes = this._buildTab3Changes(prevInvoiceStudents, tab2Rows, classificationMap, currMap, dsTongSet, freeTuitionSet, vtbMatchedMSHS, vtbAmountByMSHS);
++
++    // Cross-check totals
++    let tongKyVong = 0;
++    for (const r of tab2Rows) {
++      tongKyVong += (Number(r.hocPhi) || 0);
+     }
+-    return { rows, selectedMSHS };
++
++    return { tab2Rows, tab3Changes, classificationMap, tongKyVong };
+   },
+ 
+-  detectChanges(prevInvoiceStudents, currentInvoiceStudents, currMap, vtbMatchedMSHS, suspendedSet, freeTuitionSet, vtbAmountByMSHS) {
++  _buildTab3Changes(prevInvoiceStudents, tab2Rows, classificationMap, currMap, dsTongSet, freeTuitionSet, vtbMatchedMSHS, vtbAmountByMSHS) {
+     const changes = { tangMoi: [], giamBot: [], saiTienCK: [] };
+-    const prevInvSet = new Set((prevInvoiceStudents || []).map(s => s.mshs));
+-    const currInvSet = new Set((currentInvoiceStudents || []).map(s => s.mshs));
++    const tab2MSHS = new Set(tab2Rows.map(r => r.mshs));
+ 
+-    for (const mshs of currInvSet) {
+-      if (prevInvSet.has(mshs)) continue;
+-      const student = currMap.get(mshs);
+-      const isVTB = vtbMatchedMSHS.has(mshs);
+-      changes.tangMoi.push({
+-        mshs, fullName: student ? student.fullName : mshs, className: student ? student.className : '',
+-        hocPhi: student ? (Number(student.hocPhi) || 0) : 0,
+-        lyDo: isVTB ? '💳 CK vào TK Công ty' : 'Thêm vào DS Ghi HĐ'
+-      });
++    // 📈 Tăng mới: in DS_HD_ThangNay (tab2) but NOT in DS_HD_ThangTruoc
++    for (const r of tab2Rows) {
++      if (r.group === 'B') {
++        changes.tangMoi.push({
++          mshs: r.mshs, fullName: r.fullName, className: r.className,
++          hocPhi: r.hocPhi, lyDo: '💳 CK VTB tháng này'
++        });
++      }
+     }
+ 
+-    for (const mshs of prevInvSet) {
+-      if (currInvSet.has(mshs)) continue;
++    // 📉 Giảm bớt: Group C — in prev but NOT in current DS_HD
++    for (const [mshs, group] of classificationMap.entries()) {
++      if (group !== 'C') continue;
+       const student = currMap.get(mshs) || null;
+-      let lyDo = 'Bỏ chọn khỏi DS';
+-      if (!student) lyDo = '🚫 Nghỉ học';
+-      else if (freeTuitionSet.has(mshs)) lyDo = '💰 HP = 0';
+-      else if (suspendedSet.has(mshs)) lyDo = '⏸️ Tạm ngưng';
++      const inMaster = dsTongSet.has(mshs);
++      const hp = student ? (Number(student.hocPhi) || 0) : 0;
++
++      let lyDo;
++      if (!inMaster && hp === 0) {
++        lyDo = '🚫 Không còn trong DS Tổng + HP=0';
++      } else if (!inMaster) {
++        lyDo = '🚫 Không còn trong DS Tổng';
++      } else if (hp === 0) {
++        lyDo = '💰 HP = 0';
++      } else {
++        lyDo = '⚠️ Bất thường — cần rà tay';
++        console.warn(`[Accounting] Group C anomaly: ${mshs} still in DS Tổng AND HP=${hp}. Manual review needed.`);
++      }
++
+       changes.giamBot.push({
+-        mshs, fullName: student ? student.fullName : mshs, className: student ? student.className : '',
+-        hocPhi: student ? (Number(student.hocPhi) || 0) : 0, lyDo
++        mshs, fullName: student ? student.fullName : mshs,
++        className: student ? student.className : '',
++        hocPhi: hp, lyDo
+       });
+     }
+ 
+-    for (const mshs of currInvSet) {
+-      if (!vtbMatchedMSHS.has(mshs)) continue;
+-      const student = currMap.get(mshs);
+-      if (!student) continue;
+-      const hp = Number(student.hocPhi) || 0;
+-      const ckNop = (vtbAmountByMSHS && vtbAmountByMSHS[mshs]) || 0;
++    // ⚠️ CK sai tiền: all students in Tab 2 who have VTB CK ≠ their HP
++    for (const r of tab2Rows) {
++      if (!vtbMatchedMSHS.has(r.mshs)) continue;
++      const ckNop = (vtbAmountByMSHS && vtbAmountByMSHS[r.mshs]) || 0;
++      const hp = Number(r.hocPhi) || 0;
+       if (hp > 0 && ckNop !== hp) {
+         const chenh = ckNop - hp;
+         changes.saiTienCK.push({
+-          mshs, fullName: student.fullName, className: student.className, hocPhi: hp, ckNop, chenhLech: chenh,
++          mshs: r.mshs, fullName: r.fullName, className: r.className,
++          hocPhi: hp, ckNop, chenhLech: chenh,
+           lyDo: chenh < 0 ? `Thiếu ${Utils.formatCurrency(-chenh)}` : `Dư ${Utils.formatCurrency(chenh)}`
+         });
+       }
+     }
+-    return changes;
+-  },
+ 
+-  detectThucTeChanges(prevStudents, currStudents) {
+-    const prevMap = new Map();
+-    for (const s of prevStudents) { if (!prevMap.has(s.mshs)) prevMap.set(s.mshs, s); }
+-    const currMap = new Map();
+-    for (const s of currStudents) { if (!currMap.has(s.mshs)) currMap.set(s.mshs, s); }
+-    const result = { moi: [], nghiHoc: [], doiLop: [], hpThayDoi: [] };
+-
+-    for (const [mshs, s] of currMap.entries()) {
+-      if (!prevMap.has(s.mshs)) result.moi.push({ mshs, fullName: s.fullName, className: s.className, hocPhi: Number(s.hocPhi) || 0, ghiChu: 'Cần thêm vào Kế toán' });
+-    }
+-    for (const [mshs, s] of prevMap.entries()) {
+-      if (!currMap.has(s.mshs)) result.nghiHoc.push({ mshs, fullName: s.fullName, className: s.className, hocPhi: Number(s.hocPhi) || 0, ghiChu: 'Không còn trong DS HS tổng' });
+-    }
+-    for (const [mshs, c] of currMap.entries()) {
+-      const p = prevMap.get(mshs);
+-      if (!p) continue;
+-      const cHP = Number(c.hocPhi) || 0;
+-      const pHP = Number(p.hocPhi) || 0;
+-      if (c.className !== p.className) result.doiLop.push({ mshs, fullName: c.fullName, classNameOld: p.className, classNameNew: c.className, hocPhi: cHP, ghiChu: 'Cập nhật lớp' });
+-      else if (cHP !== pHP) result.hpThayDoi.push({ mshs, fullName: c.fullName, className: c.className, hocPhiOld: pHP, hocPhiNew: cHP, ghiChu: pHP === 0 ? 'HP mới (tháng TRC = 0)' : cHP === 0 ? 'HP = 0' : `HP ${Utils.formatCurrency(pHP)} → ${Utils.formatCurrency(cHP)}` });
+-    }
+-    return result;
++    return changes;
+   },
+ 
+   generateNhacPH(reportRows) {
+diff --git a/js/app.js b/js/app.js
+index 30ad9e3..5d02bbd 100644
+--- a/js/app.js
++++ b/js/app.js
+@@ -19,13 +19,11 @@ window.App = {
+     reportRows: [],
+     thucTeRows: [],
+     ghiHDRows: [],
+-    selectedHDMSHS: new Set(),
++    invoiceClassification: null, // result of Accounting.classifyInvoiceStudents()
+     changeRecords: [],
+     invoiceChanges: { tangMoi: [], giamBot: [], saiTienCK: [] },
+-    thucTeChanges: { moi: [], nghiHoc: [], doiLop: [], hpThayDoi: [], tamNgung: [] },
+     prevInvoiceStudents: [],
+     prevThucTeStudents: [],
+-    currentInvoiceStudents: [],
+     monthYear: '',
+     importStatus: {
+       dsHocSinh: false,
+@@ -305,7 +303,6 @@ window.App = {
+     });
+     document.getElementById('btn-export-accounting')?.addEventListener('click', () => this.exportAccounting());
+     document.getElementById('btn-export-nhac-ph')?.addEventListener('click', () => this.exportNhacPH());
+-    document.getElementById('filter-thay-doi')?.addEventListener('change', (e) => this._filterThucTeChanges(e.target.value));
+ 
+ 
+ 
+@@ -389,25 +386,12 @@ window.App = {
+       this.state.reportRows = Reporter.generateReport(this.state.students, paymentsByMSHS, familyGroups, this.state.monthYear || '');
+       const stats = Reporter.getStatistics(this.state.reportRows);
+ 
+-      // 5. Generate accounting
++      // 5. Generate accounting — DS Master Tổng
+       this.state.thucTeRows = Accounting.generateThucTe(this.state.students);
+       
++      // 5.5. UNION-based invoice classification (shared for Tab 2 + Tab 3)
+       const prevMonthHD = Storage.loadPrevMonthHD() || [];
+       const vtbMatchedMSHS = new Set(this.state.vtbMatched.map(t => t.matchedMSHS).filter(Boolean));
+-      const ghiHDResult = Accounting.generateGhiHD(this.state.thucTeRows, prevMonthHD, vtbMatchedMSHS);
+-      this.state.ghiHDRows = ghiHDResult.rows;
+-      this.state.selectedHDMSHS = ghiHDResult.selectedMSHS;
+-      
+-      // Set currentInvoiceStudents from ghiHDRows (for comparison with prev month)
+-      this.state.currentInvoiceStudents = this.state.ghiHDRows.map(r => ({
+-        mshs: r.mshs,
+-        fullName: r.fullName,
+-        className: r.className,
+-        hocPhi: r.hocPhi
+-      }));
+-
+-      // 6. Detect changes (Tăng/Giảm DS Ghi HĐ)
+-      const prevMonthDS = Storage.loadPrevMonthDS();
+       const suspended = Storage.getSuspendedForMonth(this.state.monthYear || '');
+ 
+       // Build currMap (MSHS -> student)
+@@ -416,40 +400,29 @@ window.App = {
+         if (!currMap.has(s.mshs)) currMap.set(s.mshs, s);
+       }
+ 
+-      // Map MSHS -> tong CK VietinBank (TK Cong ty) de kiem tra sai so tien
++      // Map MSHS -> tong CK VietinBank (TK Cong ty)
+       const vtbAmountByMSHS = {};
+       this.state.vtbMatched.forEach(t => {
+         if (t.matchedMSHS) vtbAmountByMSHS[t.matchedMSHS] = (vtbAmountByMSHS[t.matchedMSHS] || 0) + (Number(t.credit) || 0);
+       });
+ 
+-      // Build sets for quick lookup
+-      const suspendedSet = new Set(suspended.map(s => s.mshs));
++      // Build freeTuitionSet
+       const freeTuitionSet = new Set();
+       for (const [mshs, s] of currMap.entries()) {
+         if ((Number(s.hocPhi) || 0) === 0) freeTuitionSet.add(mshs);
+       }
+ 
+-      this.state.invoiceChanges = Accounting.detectChanges(
+-        this.state.prevInvoiceStudents,
+-        this.state.currentInvoiceStudents,
+-        currMap,
++      // Single shared classification → Tab 2 + Tab 3
++      this.state.invoiceClassification = Accounting.classifyInvoiceStudents(
++        this.state.students,       // DS_Tong_ThangNay
++        prevMonthHD,               // DS_HD_ThangTruoc
+         vtbMatchedMSHS,
+-        suspendedSet,
++        currMap,
+         freeTuitionSet,
+         vtbAmountByMSHS
+       );
+-
+-      // Tab 2: Thay đổi DS Thực tế
+-      // So sánh: DS HS tổng (import đầu tiên) vs DS Thực tế tháng TRƯỚC (trong file Kế toán)
+-      if (this.state.prevThucTeStudents && this.state.prevThucTeStudents.length > 0) {
+-        this.state.thucTeChanges = Accounting.detectThucTeChanges(
+-          this.state.prevThucTeStudents,  // DS Thực tế tháng TRƯỚC
+-          this.state.students,             // DS HS tổng (import đầu tiên)
+-          suspendedSet
+-        );
+-      } else {
+-        this.state.thucTeChanges = { moi: [], nghiHoc: [], doiLop: [], hpThayDoi: [], tamNgung: [] };
+-      }
++      this.state.ghiHDRows = this.state.invoiceClassification.tab2Rows;
++      this.state.invoiceChanges = this.state.invoiceClassification.tab3Changes;
+ 
+       // 7. Get new STKs
+       const newSTKs = Matcher.getNewSTKs(this.state.vtbTransactions, this.state.students, stkPhu);
+@@ -721,38 +694,31 @@ window.App = {
+   },
+ 
+   // ========================
+-  // RENDER: Accounting Tabs
++  // RENDER: Accounting Tabs (v2 — 3 sub-tabs)
+   // ========================
+   renderAccountingTabs: function() {
+-    // Tab 1: DS Thực tế
+-    const thucTeTbody = document.querySelector('#table-acc-real tbody');
+-    if (thucTeTbody) {
+-      thucTeTbody.innerHTML = this.state.thucTeRows.map(r => `<tr>
+-        <td>${r.stt}</td><td>${r.mshs}</td><td>${r.className}</td><td>${r.fullName}</td><td>${r.teacher}</td><td class="number">${Utils.formatCurrency(r.hocPhi)}</td><td>${r.ghiChu || ''}</td>
+-      </tr>`).join('');
+-      const realCountEl = document.getElementById('acc-real-count');
+-      if (realCountEl) realCountEl.textContent = `${this.state.thucTeRows.length} HS`;
+-    }
++    // Tab 1: DS Hoá đơn Tháng trước (raw from prev invoice file)
++    this.renderPrevInvoiceTab();
+ 
+-    // Tab 2: DS Ghi HĐ
++    // Tab 2: DS Hoá đơn tháng hiện tại (Groups A + B)
+     this.renderInvoiceTableHD();
+ 
+-    // Tab 3: Thay đổi HĐ
++    // Tab 3: Thay đổi (Tăng mới + Giảm bớt + CK sai tiền)
+     this.renderInvoiceChanges();
+ 
+-    // Tab 4: Thay đổi DS
+-    this.renderThucTeChanges();
++    // Cross-check totals
++    this.renderCrossCheck();
++  },
++
++  renderInvoiceChanges: function() {
++    const changes = this.state.invoiceChanges || { tangMoi: [], giamBot: [], saiTienCK: [] };
+ 
+     // Month label
+-    const monthLabel = document.getElementById('invoice-month-label');
++    const monthLabel = document.getElementById('changes-month-label');
+     if (monthLabel) {
+       const my = this.state.monthYear || '';
+       monthLabel.textContent = my ? my.split('-').reverse().join('.') : '...';
+     }
+-  },
+-
+-  renderInvoiceChanges: function() {
+-    const changes = this.state.invoiceChanges || { tangMoi: [], giamBot: [], saiTienCK: [] };
+ 
+     // TĂNG MỚI
+     const tangTbody = document.querySelector('#table-acc-tang tbody');
+@@ -786,72 +752,119 @@ window.App = {
+   },
+ 
+   // ========================
+-  // TAB 2: Thay đổi DS Thực tế
++  // TAB 1: DS Hoá đơn Tháng trước
+   // ========================
+-  renderThucTeChanges: function() {
+-    const tc = this.state.thucTeChanges || { moi: [], nghiHoc: [], doiLop: [], hpThayDoi: [] };
+-    const allChanges = [];
+-    tc.moi.forEach(c => allChanges.push({ ...c, type: 'moi', typeLabel: '🆕 Cần thêm vào KT' }));
+-    tc.nghiHoc.forEach(c => allChanges.push({ ...c, type: 'nghiHoc', typeLabel: '🚫 Không còn trong DS HS' }));
+-    tc.doiLop.forEach(c => allChanges.push({ mshs: c.mshs, fullName: c.fullName, className: c.classNameNew || c.classNameOld, hocPhi: c.hocPhi, type: 'doiLop', typeLabel: '🔄 Đổi lớp', ghiChu: `${c.classNameOld} → ${c.classNameNew}` }));
+-    tc.hpThayDoi.forEach(c => allChanges.push({ mshs: c.mshs, fullName: c.fullName, className: c.className, hocPhi: c.hocPhiNew, type: 'hpThayDoi', typeLabel: '💰 HP thay đổi', ghiChu: c.ghiChu }));
+-    this._thucTeChangesAll = allChanges;
+-    this._filterThucTeChanges('all');
+-    const summaryEl = document.getElementById('thay-doi-summary');
+-    if (summaryEl) summaryEl.textContent = allChanges.length > 0 ? `${allChanges.length} thay đổi` : 'Không có thay đổi';
+-  },
+-
+-  _filterThucTeChanges: function(filter) {
+-    const all = this._thucTeChangesAll || [];
+-    const filtered = filter === 'all' ? all : all.filter(c => c.type === filter);
+-    const tbody = document.querySelector('#table-thay-doi-real tbody');
+-    if (!tbody) return;
+-    tbody.innerHTML = filtered.length === 0
+-      ? '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Không có thay đổi</td></tr>'
+-      : filtered.map(c => `<tr><td>${c.mshs}</td><td>${c.fullName}</td><td>${c.className}</td><td class="number">${Utils.formatCurrency(c.hocPhi || 0)}</td><td>${c.typeLabel}</td><td>${c.ghiChu || ''}</td></tr>`).join('');
+-    const summaryEl = document.getElementById('thay-doi-summary');
+-    if (summaryEl) summaryEl.textContent = filter === 'all' ? `${all.length} thay đổi` : `${filtered.length}/${all.length}`;
++  renderPrevInvoiceTab: function() {
++    const prevStudents = this.state.prevInvoiceStudents || [];
++    const tbody = document.querySelector('#table-prev-invoice tbody');
++    if (tbody) {
++      tbody.innerHTML = prevStudents.length === 0
++        ? '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Chưa import file Kế toán tháng trước</td></tr>'
++        : prevStudents.map((s, idx) => `<tr>
++            <td>${idx + 1}</td><td>${s.mshs || ''}</td><td>${s.className || ''}</td><td>${s.fullName || ''}</td><td class="number">${Utils.formatCurrency(s.hocPhi || 0)}</td><td>${s.ghiChu || ''}</td>
++          </tr>`).join('');
++      const countEl = document.getElementById('prev-hd-count');
++      if (countEl) countEl.textContent = `${prevStudents.length} HS`;
++    }
++    // Month label
++    const monthLabel = document.getElementById('prev-month-label');
++    if (monthLabel) {
++      monthLabel.textContent = prevStudents.length > 0 ? 'đã import' : 'chưa có dữ liệu';
++    }
+   },
+ 
++  // ========================
++  // TAB 2: DS Hoá đơn tháng hiện tại (Groups A + B)
++  // ========================
+   renderInvoiceTableHD: function() {
+     const tbody = document.querySelector('#table-acc-invoice tbody');
+     if (!tbody) return;
+ 
+     const hdRows = this.state.ghiHDRows || [];
+-    const selectedMSHS = this.state.selectedHDMSHS || new Set();
+-
+     let totalAmount = 0;
+-    let selectedCount = 0;
+ 
+     tbody.innerHTML = hdRows.map((r, idx) => {
+-      const isSelected = selectedMSHS.has(r.mshs);
+-      const isTangMoi = r.mandatory || false;
+-      const isBoSung = r.boSung || false;
+-
+-      let tag = '';
+-      if (isTangMoi) tag = ' <span class="badge success" style="font-size:10px">📈 Tăng mới</span>';
+-      if (isBoSung) tag = ' <span class="badge info" style="font-size:10px">📋 Bổ sung bởi Kế toán</span>';
+-
+-      if (isSelected) {
+-        totalAmount += (Number(r.hocPhi) || 0);
+-        selectedCount++;
+-      }
++      const tag = r.tag ? ` <span class="badge ${r.group === 'B' ? 'success' : 'info'}" style="font-size:10px">${r.tag}</span>` : '';
++      totalAmount += (Number(r.hocPhi) || 0);
+ 
+       return `<tr>
+-        <td>${idx + 1}</td><td>${r.mshs}</td><td>${r.className}</td><td>${r.fullName}</td><td>${r.teacher}</td>
++        <td>${idx + 1}</td><td>${r.mshs}</td><td>${r.className}</td><td>${r.fullName}</td><td>${r.teacher || ''}</td>
+         <td class="number">${Utils.formatCurrency(r.hocPhi)}</td>
+-        <td>${r.ghiChu || ''}${tag}</td>
++        <td>${r.source || ''}${tag}</td>
+       </tr>`;
+     }).join('');
+ 
+     const countEl = document.getElementById('acc-invoice-count');
+-    if (countEl) countEl.textContent = `${selectedCount} HS`;
+-    const currCountEl = document.getElementById('curr-month-count');
+-    if (currCountEl) currCountEl.textContent = selectedCount;
+-    const prevCountEl = document.getElementById('prev-month-count');
+-    if (prevCountEl) prevCountEl.textContent = (this.state.prevInvoiceStudents || []).length;
++    if (countEl) countEl.textContent = `${hdRows.length} HS`;
+     const totalEl = document.getElementById('total-amount');
+     if (totalEl) totalEl.textContent = Utils.formatCurrency(totalAmount);
++
++    // Prev count
++    const prevCountEl = document.getElementById('prev-month-count');
++    if (prevCountEl) prevCountEl.textContent = (this.state.prevInvoiceStudents || []).length;
++
++    // Month label
++    const monthLabel = document.getElementById('invoice-month-label');
++    if (monthLabel) {
++      const my = this.state.monthYear || '';
++      monthLabel.textContent = my ? my.split('-').reverse().join('.') : '...';
++    }
++  },
++
++  // ========================
++  // Cross-check: đối chiếu tổng tiền
++  // ========================
++  renderCrossCheck: function() {
++    const cls = this.state.invoiceClassification;
++    if (!cls) return;
++
++    const tongKyVong = cls.tongKyVong || 0;
++    const changes = cls.tab3Changes || {};
++    const saiTienCount = (changes.saiTienCK || []).length;
++
++    // Total VTB received
++    let tongCKThucNhan = 0;
++    const vtbMatchedMSHS = new Set(this.state.vtbMatched.map(t => t.matchedMSHS).filter(Boolean));
++    for (const r of (cls.tab2Rows || [])) {
++      if (vtbMatchedMSHS.has(r.mshs)) {
++        // Sum from vtbMatched
++        this.state.vtbMatched.forEach(t => {
++          if (t.matchedMSHS === r.mshs) tongCKThucNhan += (Number(t.credit) || 0);
++        });
++      }
++    }
++
++    // Deduplicated: calculate once from VTB matched transactions for Group A+B students
++    const tab2MSHS = new Set((cls.tab2Rows || []).map(r => r.mshs));
++    tongCKThucNhan = 0;
++    for (const t of (this.state.vtbMatched || [])) {
++      if (tab2MSHS.has(t.matchedMSHS)) {
++        tongCKThucNhan += (Number(t.credit) || 0);
++      }
++    }
++
++    // Sum of sai tien
++    let tongSaiTien = 0;
++    for (const s of (changes.saiTienCK || [])) {
++      tongSaiTien += s.chenhLech || 0;
++    }
++
++    const chenhLech = tongCKThucNhan - tongKyVong;
++    const uocLuongToiThieu = Math.floor(tongCKThucNhan / (APP_CONFIG.DEFAULT_HOC_PHI || 800000));
++
++    const el = document.getElementById('cross-check-info');
++    if (el) {
++      el.innerHTML = `
++        <div class="flex gap-4 flex-wrap text-sm" style="padding: 12px 0;">
++          <span>💰 Tổng CK TK Công ty: <b>${Utils.formatCurrency(tongCKThucNhan)}</b></span>
++          <span>📊 Tổng HP kỳ vọng (A+B): <b>${Utils.formatCurrency(tongKyVong)}</b></span>
++          <span>⚡ Chênh lệch: <b style="color:${chenhLech !== 0 ? 'var(--color-danger)' : 'var(--color-success)'}">${Utils.formatCurrency(chenhLech)}</b></span>
++          ${saiTienCount > 0 ? `<span>⚠️ Sai tiền: <b>${saiTienCount} HS</b> (tổng chênh: ${Utils.formatCurrency(tongSaiTien)})</span>` : ''}
++          <span style="color:var(--text-secondary)">📐 Ước lượng tối thiểu: <b>${uocLuongToiThieu}</b> HS</span>
++        </div>
++        ${chenhLech !== 0 && saiTienCount === 0 ? '<p style="color:var(--color-warning);font-size:0.8rem">⚠️ Có chênh lệch nhưng không phát hiện HS sai tiền → có giao dịch lạ chưa ghi nhận. Cần rà tay.</p>' : ''}
++      `;
++    }
+   },
+ 
+   getChangeTypeInfo: function(type) {
+@@ -1159,15 +1172,11 @@ window.App = {
+   },
+ 
+   // ========================
+-  // ACTIONS: Invoice selection
++  // ACTIONS: Invoice selection (v2 — all Tab 2 rows auto-selected)
+   // ========================
+   toggleInvoiceItem: function(mshs, checked) {
+-    if (checked) {
+-      this.state.selectedHDMSHS.add(mshs);
+-    } else {
+-      this.state.selectedHDMSHS.delete(mshs);
+-    }
+-    document.getElementById('invoice-selected-count').textContent = this.state.selectedHDMSHS.size;
++    // No-op in v2: all Group A+B students are automatically included
++    // Kept for backward compatibility with any legacy UI references
+   },
+ 
+ 
+@@ -1198,8 +1207,8 @@ window.App = {
+   exportAccounting: function() {
+     if (!this.state.thucTeRows.length) { Utils.showToast('Chưa có dữ liệu kế toán', 'error'); return; }
+     const monthYear = document.getElementById('month-selector')?.value || '';
+-    const ghiHDSelected = this.state.ghiHDRows.filter(r => this.state.selectedHDMSHS.has(r.mshs));
+-    Exporter.exportKeToan(this.state.thucTeRows, ghiHDSelected, this.state.invoiceChanges, monthYear);
++    // v2: all ghiHDRows (Groups A+B) are included
++    Exporter.exportKeToan(this.state.thucTeRows, this.state.ghiHDRows, this.state.invoiceChanges, monthYear);
+     Utils.showToast('Đã xuất file báo cáo kế toán', 'success');
+   },
+ 
+@@ -1216,8 +1225,8 @@ window.App = {
+       month: monthYear,
+       savedDate: new Date().toISOString()
+     });
+-    // Save HD list
+-    Storage.savePrevMonthHD([...this.state.selectedHDMSHS]);
++    // Save HD list — v2: save all Tab 2 MSHS (Groups A+B)
++    Storage.savePrevMonthHD(this.state.ghiHDRows.map(r => r.mshs));
+     
+     // Auto-archive
+     if (this.state.matchingDone) {
+@@ -1225,7 +1234,7 @@ window.App = {
+         students: this.state.students,
+         reportRows: this.state.reportRows,
+         thucTeRows: this.state.thucTeRows,
+-        selectedHDMSHS: [...this.state.selectedHDMSHS],
++        ghiHDMSHS: this.state.ghiHDRows.map(r => r.mshs),
+         changeRecords: this.state.changeRecords,
+         stkPhu: Storage.loadSTKPhu(),
+         keywords: Storage.loadKeywords()

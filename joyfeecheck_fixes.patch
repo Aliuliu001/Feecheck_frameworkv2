@@ -1,0 +1,359 @@
+diff --git a/js/app.js b/js/app.js
+index b87c631..3787a79 100644
+--- a/js/app.js
++++ b/js/app.js
+@@ -296,7 +296,7 @@ window.App = {
+ 
+       // 2. Match TPBank  
+       if (this.state.tpbTransactions.length > 0) {
+-        const tpbResult = Matcher.matchTPBank(this.state.tpbTransactions, keywords);
++        const tpbResult = Matcher.matchTPBank(this.state.tpbTransactions, keywords, this.state.students);
+         this.state.tpbMatched = tpbResult.matched;
+         this.state.tpbUnmatched = tpbResult.unmatched;
+       }
+diff --git a/js/exporter.js b/js/exporter.js
+index 2bf4d03..9b600f4 100644
+--- a/js/exporter.js
++++ b/js/exporter.js
+@@ -30,6 +30,11 @@ window.Exporter = {
+    */
+   exportBaoCao(reportRows, stats, monthYear) {
+     const wb = XLSX.utils.book_new();
++
++    // Chuẩn hóa tháng thành MM.YYYY
++    const monthLabel = (monthYear || '').includes('-')
++      ? monthYear.split('-').reverse().join('.')
++      : (monthYear || '');
+     
+     const dataRows = reportRows.map((row, index) => ({
+       'STT': index + 1,
+@@ -43,7 +48,7 @@ window.Exporter = {
+       'CK TPBank': row.chuyenKhoanTPB,
+       'Tổng đã đóng': row.tongDaDong,
+       'Trạng thái': row.trangThai,
+-      'Ghi chú': row.ghiChuGiaDinh
++      'Ghi chú': row.ghiChu || ''
+     }));
+ 
+     // Add total row
+@@ -67,7 +72,7 @@ window.Exporter = {
+     // Add Header Rows above data manually by inserting them
+     XLSX.utils.sheet_add_aoa(ws, [
+       [APP_CONFIG.COMPANY_NAME],
+-      [`BÁO CÁO ĐỐI SOÁT - ${monthYear}`],
++      [`BÁO CÁO ĐỐI SOÁT - ${monthLabel}`],
+       [`Ngày tạo: ${new Date().toLocaleDateString('vi-VN')}`],
+       []
+     ], { origin: 'A1' });
+@@ -77,7 +82,7 @@ window.Exporter = {
+     
+     const finalAoA = [
+       [APP_CONFIG.COMPANY_NAME],
+-      [`BÁO CÁO ĐỐI SOÁT - ${monthYear}`],
++      [`BÁO CÁO ĐỐI SOÁT - ${monthLabel}`],
+       [`Ngày tạo: ${new Date().toLocaleDateString('vi-VN')}`],
+       [],
+       ['STT', 'MSHS', 'Họ tên', 'Lớp', 'GV', 'Tổng HP', 'CK VietinBank', 'Tiền mặt', 'CK TPBank', 'Tổng đã đóng', 'Trạng thái', 'Ghi chú']
+@@ -96,7 +101,7 @@ window.Exporter = {
+     
+     XLSX.utils.book_append_sheet(wb, finalWs, 'BÁO CÁO ĐỐI SOÁT');
+     
+-    const filename = `BaoCao_DoiSoat_${monthYear.replace(/[/ ]/g, '_')}.xlsx`;
++    const filename = `BaoCao_DoiSoat_${monthLabel.replace(/[/ ]/g, '_')}.xlsx`;
+     this.triggerDownload(wb, filename);
+   },
+ 
+@@ -106,6 +111,11 @@ window.Exporter = {
+   exportKeToan(thucTeRows, ghiHDRows, changeRows, monthYear, prevMonthHD = []) {
+     const wb = XLSX.utils.book_new();
+ 
++    // Chuẩn hóa tháng thành MM.YYYY (từ input type=month "YYYY-MM")
++    const monthLabel = (monthYear || '').includes('-')
++      ? monthYear.split('-').reverse().join('.')
++      : (monthYear || '');
++
+     const newStudents = new Set();
+     const quitStudents = new Set();
+     changeRows.forEach(c => {
+@@ -144,7 +154,7 @@ window.Exporter = {
+       [APP_CONFIG.COMPANY_TAX, '', '', '', '', '', '', ''],
+       [APP_CONFIG.COMPANY_ADDRESS, '', '', '', '', '', '', ''],
+       ['', '', '', '', '', '', '', ''],
+-      [`DANH SACH HỌC SINH THÁNG ${monthYear.replace('/', '.')}`, '', '', '', '', '', '', ''],
++      [`DANH SACH HỌC SINH THÁNG ${monthLabel}`],
+       ['', '', '', '', '', '', '', ''],
+       headers
+     ];
+@@ -215,7 +225,7 @@ window.Exporter = {
+     this.autoFitColumns(wsThayDoi, changeRows, changeHeaders);
+     XLSX.utils.book_append_sheet(wb, wsThayDoi, 'Thay đổi');
+ 
+-    const filename = `BaoCao_KeToan_${monthYear.replace(/[/ ]/g, '_')}.xlsx`;
++    const filename = `BaoCao_KeToan_${monthLabel.replace(/[/ ]/g, '_')}.xlsx`;
+     this.triggerDownload(wb, filename);
+   },
+ 
+@@ -224,6 +234,11 @@ window.Exporter = {
+    */
+   exportNhacPH(nhacList, monthYear) {
+     const wb = XLSX.utils.book_new();
++
++    // Chuẩn hóa tháng thành MM.YYYY
++    const monthLabel = (monthYear || '').includes('-')
++      ? monthYear.split('-').reverse().join('.')
++      : (monthYear || '');
+     const dataRows = nhacList.map((row, idx) => ({
+       'STT': idx + 1,
+       'MSHS': row.mshs,
+@@ -238,7 +253,7 @@ window.Exporter = {
+     
+     XLSX.utils.book_append_sheet(wb, ws, 'NHẮC PHỤ HUYNH');
+     
+-    const filename = `DanhSach_NhacPH_${monthYear.replace(/[/ ]/g, '_')}.xlsx`;
++    const filename = `DanhSach_NhacPH_${monthLabel.replace(/[/ ]/g, '_')}.xlsx`;
+     this.triggerDownload(wb, filename);
+   },
+ 
+@@ -284,6 +299,11 @@ window.Exporter = {
+     const wb = XLSX.utils.book_new();
+     const { students, vtb, tpb, cash, reportRows, stats, stkPhu, keywords, monthYear } = data;
+ 
++    // Chuẩn hóa tháng thành MM.YYYY
++    const monthLabel = (monthYear || '').includes('-')
++      ? monthYear.split('-').reverse().join('.')
++      : (monthYear || '');
++
+     const createSheet = (aoa, cols) => {
+       const ws = XLSX.utils.aoa_to_sheet(aoa);
+       this.autoFitColumns(ws, null, cols);
+@@ -335,7 +355,7 @@ window.Exporter = {
+     // 7. BAO_CAO
+     const reportAoA = [
+       [APP_CONFIG.COMPANY_NAME],
+-      [`BÁO CÁO ĐỐI SOÁT - ${monthYear}`],
++      [`BÁO CÁO ĐỐI SOÁT - ${monthLabel}`],
+       [],
+       ['STT', 'MSHS', 'Họ tên', 'Lớp', 'GV', 'Tổng HP', 'CK VietinBank', 'Tiền mặt', 'CK TPBank', 'Tổng đã đóng', 'Trạng thái', 'Ghi chú']
+     ];
+@@ -343,9 +363,9 @@ window.Exporter = {
+       reportAoA.push([
+         idx + 1, row.mshs, row.fullName, row.className, row.teacher, row.tongHocPhi,
+         row.chuyenKhoanVTB, row.tienMat, row.chuyenKhoanTPB, row.tongDaDong,
+-        row.trangThai, row.ghiChuGiaDinh
+-      ]);
+-    });
++ row.trangThai, row.ghiChu || ''
++ ]);
++ });
+     if (stats) {
+       reportAoA.push([
+         '', '', 'TỔNG CỘNG', '', '', stats.tongHocPhi, '', '', '', stats.tongThu, '', ''
+@@ -353,7 +373,7 @@ window.Exporter = {
+     }
+     XLSX.utils.book_append_sheet(wb, createSheet(reportAoA, reportAoA[3]), 'BAO_CAO');
+ 
+-    const filename = `JoyFeeCheck_Full_${monthYear.replace(/[/ ]/g, '_')}.xlsx`;
++    const filename = `JoyFeeCheck_Full_${monthLabel.replace(/[/ ]/g, '_')}.xlsx`;
+     this.triggerDownload(wb, filename);
+   }
+ };
+diff --git a/js/importer.js b/js/importer.js
+index 47c7140..e9da597 100644
+--- a/js/importer.js
++++ b/js/importer.js
+@@ -133,14 +133,24 @@ window.Importer = {
+       const dataMatrix = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+ 
+       let headerRowIdx = -1;
+-      for (let i = 0; i < Math.min(20, dataMatrix.length); i++) {
++      let bestScore = 0;
++      // Duyệt rộng hơn (sao kê VietinBank có block "thông tin tài khoản" phía trên
++      // nên dòng tiêu đề thực tế có thể nằm sâu, ví dụ row 24).
++      for (let i = 0; i < Math.min(40, dataMatrix.length); i++) {
+         const row = dataMatrix[i];
+         if (!row) continue;
+         const rowStr = row.join(' ').toLowerCase();
+-        if (rowStr.includes('ghi có') || rowStr.includes('credit') || (rowStr.includes('stk') && rowStr.includes('đối ứng'))) {
++        // Ưu tiên dòng tiêu đề chuẩn: chứa "đối ứng" (STK đối ứng + Tên TK đối ứng)
++        if (rowStr.includes('đối ứng')) {
+           headerRowIdx = i;
+           break;
+         }
++        // Dự phòng: dòng có "ghi có"/"credit"
++        const score = (rowStr.includes('ghi có') ? 1 : 0) + (rowStr.includes('credit') ? 1 : 0);
++        if (score > bestScore) {
++          bestScore = score;
++          headerRowIdx = i;
++        }
+       }
+ 
+       if (headerRowIdx === -1) {
+diff --git a/js/matcher.js b/js/matcher.js
+index 62077c6..8122fbe 100644
+--- a/js/matcher.js
++++ b/js/matcher.js
+@@ -32,22 +32,61 @@ window.Matcher = {
+       }
+     });
+ 
++    // Bản đồ MSHS -> Học phí (để chia tiền khi 1 STK có nhiều HS)
++    const hpMap = new Map();
++    students.forEach(s => {
++      hpMap.set(s.mshs, Number(s.hocPhi) || APP_CONFIG.DEFAULT_HOC_PHI);
++    });
++
++    // Hàm chia 1 GD cho nhiều MSHS theo tỉ lệ học phí
++    const splitToMembers = (tx, members) => {
++      const reqs = members.map(mshs => ({ mshs, hp: hpMap.get(mshs) || APP_CONFIG.DEFAULT_HOC_PHI }));
++      const totalHP = reqs.reduce((a, r) => a + r.hp, 0) || 1;
++      let remain = tx.credit;
++      reqs.forEach((r, idx) => {
++        // Các phần tử trước lấy phần nguyên theo tỉ lệ; phần tử cuối gom phần dư
++        const alloc = (idx === reqs.length - 1)
++          ? remain
++          : Math.floor(tx.credit * r.hp / totalHP);
++        remain -= alloc;
++        if (alloc <= 0) return;
++        matched.push({
++          ...tx,
++          credit: alloc,
++          matchedMSHS: r.mshs,
++          matchSource: tx.matchSource,
++          matchNote: members.length > 1 ? 'stk_chinh_chia_nhieu_hs' : ''
++        });
++      });
++    };
++
+     transactions.forEach(tx => {
+       const normTxSTK = Utils.normalizeSTK(tx.stkDoiUng);
+       let found = false;
+ 
+       // 1. Tìm trong STK chính
+       if (normTxSTK && stkChinhMap.has(normTxSTK)) {
+-        tx.matchedMSHS = stkChinhMap.get(normTxSTK)[0]; // Lấy HS đầu tiên, tổng hợp sẽ xử lý nhiều lớp
++        const members = stkChinhMap.get(normTxSTK);
+         tx.matchSource = 'stk_chinh';
+-        matched.push(tx);
++        if (members.length === 1) {
++          tx.matchedMSHS = members[0];
++          matched.push(tx);
++        } else {
++          // 1 STK chính có nhiều HS -> chia tiền theo tỉ lệ học phí
++          splitToMembers(tx, members);
++        }
+         found = true;
+-      } 
++      }
+       // 2. Tìm trong STK phụ
+       else if (normTxSTK && stkPhuMap.has(normTxSTK)) {
+-        tx.matchedMSHS = stkPhuMap.get(normTxSTK)[0];
++        const members = stkPhuMap.get(normTxSTK);
+         tx.matchSource = 'stk_phu';
+-        matched.push(tx);
++        if (members.length === 1) {
++          tx.matchedMSHS = members[0];
++          matched.push(tx);
++        } else {
++          splitToMembers(tx, members);
++        }
+         found = true;
+       }
+ 
+@@ -60,25 +99,58 @@ window.Matcher = {
+   },
+ 
+   // Khớp giao dịch TPBank (theo từ khóa)
+-  matchTPBank: function(transactions, keywordsList) {
++  matchTPBank: function(transactions, keywordsList, students) {
+     const matched = [];
+     const unmatched = [];
+ 
+-    // Sắp xếp từ khóa theo độ dài giảm dần (ưu tiên khớp từ dài trước)
+-    // Sort keywords by length descending
+-    keywordsList.sort((a, b) => (b.keyword || '').length - (a.keyword || '').length);
++    // Bản đồ MSHS -> Học phí (để chia tiền khi 1 keyword có nhiều HS)
++    const hpMap = new Map();
++    if (students) {
++      students.forEach(s => hpMap.set(s.mshs, Number(s.hocPhi) || APP_CONFIG.DEFAULT_HOC_PHI));
++    }
++
++    // Nhóm các keyword trùng nhau (cùng chuỗi) thành 1 keyword -> [mshs...]
++    const kwGroups = new Map();
++    keywordsList.forEach(k => {
++      const normKw = Utils.normalizeText(k.keyword);
++      if (!normKw) return;
++      if (!kwGroups.has(normKw)) kwGroups.set(normKw, []);
++      kwGroups.get(normKw).push(k);
++    });
++    // Sắp xếp keyword theo độ dài giảm dần (ưu tiên khớp từ dài trước)
++    const sortedKw = [...kwGroups.keys()].sort((a, b) => b.length - a.length);
+ 
+     transactions.forEach(tx => {
+       const normDesc = Utils.normalizeText(tx.explanation);
+       let found = false;
+ 
+-      for (const kwObj of keywordsList) {
+-        const normKw = Utils.normalizeText(kwObj.keyword);
+-        if (normKw && normDesc.includes(normKw)) {
+-          tx.matchedMSHS = kwObj.mshs;
++      for (const normKw of sortedKw) {
++        if (normDesc.includes(normKw)) {
++          const members = kwGroups.get(normKw);
+           tx.matchSource = 'keyword';
+-          tx.matchedKeyword = kwObj.keyword;
+-          matched.push(tx);
++          tx.matchedKeyword = members[0].keyword;
++          if (members.length === 1) {
++            tx.matchedMSHS = members[0].mshs;
++            matched.push(tx);
++          } else {
++            // 1 keyword (1 PH) có nhiều HS -> chia tiền theo tỉ lệ HP (hoặc đều nếu thiếu HP)
++            const reqs = members.map(m => ({ mshs: m.mshs, hp: hpMap.get(m.mshs) || 0 }));
++            const totalHP = reqs.reduce((a, r) => a + r.hp, 0);
++            let remain = tx.credit;
++            reqs.forEach((r, idx) => {
++              const alloc = (idx === reqs.length - 1)
++                ? remain
++                : Math.floor(tx.credit * (totalHP ? r.hp / totalHP : 1 / reqs.length));
++              remain -= alloc;
++              if (alloc <= 0) return;
++              matched.push({
++                ...tx,
++                credit: alloc,
++                matchedMSHS: r.mshs,
++                matchNote: 'keyword_chia_nhieu_hs'
++              });
++            });
++          }
+           found = true;
+           break;
+         }
+@@ -220,7 +292,7 @@ window.Matcher = {
+       // Also check if there's an orphan aggregation by some logic under the group's first member
+       // This is mostly handled by the loop above if the matcher assigned the CK to any member.
+ 
+-      if (totalCKPool === 0) continue; // Nothing to distribute
++      if (totalCKPool === 0) return; // Nothing to distribute for this group
+ 
+       // 2. Calculate requested tuition for each member
+       const memberReqs = group.members.map(mshs => {
+diff --git a/js/reporter.js b/js/reporter.js
+index 5e11613..02dff66 100644
+--- a/js/reporter.js
++++ b/js/reporter.js
+@@ -61,14 +61,10 @@ window.Reporter = {
+       // ==========================
+       let notes = [];
+       
+-      // 1. CK VietinBank khác mặc định
++      // 1. CK VietinBank khác mức học phí quy định (cảnh báo hụt HĐ)
+       if (paymentData.vtb > 0 && paymentData.vtb !== tongHocPhi) {
+         notes.push(`⚠ CK TK CT: ${Utils.formatCurrency(paymentData.vtb)} (HP: ${Utils.formatCurrency(tongHocPhi)})`);
+       }
+-      // 2. CK TPBank sai lệch đáng kể (giống bội 800k nhưng có lẻ)
+-      else if (paymentData.tpb > 0 && paymentData.tpb !== tongHocPhi && (paymentData.tpb % 100000 !== 0 || paymentData.tpb % APP_CONFIG.DEFAULT_HOC_PHI !== 0)) {
+-        notes.push(`⚠ Nghi nhầm: ${Utils.formatCurrency(paymentData.tpb)}`);
+-      }
+ 
+       // 3. Học nhiều lớp
+       if (classes.length > 1) {
