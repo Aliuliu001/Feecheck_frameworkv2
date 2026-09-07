@@ -277,7 +277,43 @@ textarea { height: auto; min-height: 80px; padding: 12px; resize: vertical; }
 .table-container tbody tr:hover { background: var(--primary-light); }
 .table-container tbody tr:nth-child(even) { background: #FAF8F4; }
 .table-container tbody tr:nth-child(even):hover { background: var(--primary-light); }
+/* Compact Table - For Settings/Mapping */
+.compact-table { max-height: 400px; overflow-y: auto; }
+.compact-table table { font-size: 14px; }
+.compact-table thead th { 
+  padding: 12px 14px; font-size: 13px; 
+  position: sticky; top: 0; z-index: 10;
+  background: var(--primary); color: white;
+}
+.compact-table tbody td { padding: 10px 14px; }
+.compact-table tbody tr:nth-child(odd) { background: white; }
+.compact-table tbody tr:nth-child(even) { background: #FAF8F4; }
 .col-amount { font-weight: 700; font-size: 16px; }
+
+/* Settings Section Spacing */
+.settings-section { 
+  background: var(--bg-card); 
+  border: 2px solid var(--border-color); 
+  border-radius: 16px; 
+  padding: 24px; 
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.settings-section h4 { 
+  color: var(--primary); 
+  margin-bottom: 12px; 
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+}
+.settings-section .count-badge {
+  background: var(--primary);
+  color: white;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
 
 /* Status Badges - Solid/Filled Style, Larger + Bolder */
 .status-badge {

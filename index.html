@@ -850,27 +850,30 @@
           </div>
         </div>
         
-        <div class="mt-4">
-          <h4>STK Phụ (<span x-text="stkPhuData.length"></span>)</h4>
+        <div class="settings-section">
+          <h4>🏦 STK Phụ <span class="count-badge" x-text="stkPhuData.length"></span></h4>
+          <input type="text" placeholder="🔍 Tìm STK, MSHS, tên TK..." 
+                 x-model="stkPhuSearch"
+                 style="width: 100%; margin-bottom: 12px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
           <div class="table-container compact-table">
             <table>
               <thead>
                 <tr>
-                  <th>MSHS</th>
-                  <th>STK</th>
-                  <th>Tên TK</th>
+                  <th style="width: 25%;">MSHS</th>
+                  <th style="width: 30%;">STK</th>
+                  <th style="width: 45%;">Tên TK</th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="stkPhuData.length === 0">
                   <tr>
-                    <td colspan="3" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                    <td colspan="3" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
                   </tr>
                 </template>
-                <template x-for="item in stkPhuData" :key="item.stk">
+                <template x-for="item in stkPhuData.filter(s => !stkPhuSearch || (s.mshs + s.stk + s.tenTK).toLowerCase().includes(stkPhuSearch.toLowerCase()))" :key="item.stk">
                   <tr>
-                    <td x-text="item.mshs"></td>
-                    <td x-text="item.stk"></td>
+                    <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="item.mshs"></span></td>
+                    <td style="font-family: monospace; font-weight: 600;" x-text="item.stk"></td>
                     <td x-text="item.tenTK"></td>
                   </tr>
                 </template>
@@ -879,27 +882,30 @@
           </div>
         </div>
 
-        <div class="mt-4">
-          <h4>Từ khóa TPBank (<span x-text="keywordData.length"></span>)</h4>
+        <div class="settings-section">
+          <h4>🔑 Từ khóa TPBank <span class="count-badge" x-text="keywordData.length"></span></h4>
+          <input type="text" placeholder="🔍 Tìm từ khóa, MSHS, tên HS..." 
+                 x-model="keywordSearch"
+                 style="width: 100%; margin-bottom: 12px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
           <div class="table-container compact-table">
             <table>
               <thead>
                 <tr>
-                  <th>Từ khóa</th>
-                  <th>MSHS</th>
-                  <th>Tên HS</th>
+                  <th style="width: 30%;">Từ khóa</th>
+                  <th style="width: 25%;">MSHS</th>
+                  <th style="width: 45%;">Tên HS</th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="keywordData.length === 0">
                   <tr>
-                    <td colspan="3" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                    <td colspan="3" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
                   </tr>
                 </template>
-                <template x-for="item in keywordData" :key="item.keyword">
+                <template x-for="item in keywordData.filter(k => !keywordSearch || (k.keyword + k.mshs + k.tenHS).toLowerCase().includes(keywordSearch.toLowerCase()))" :key="item.keyword">
                   <tr>
-                    <td x-text="item.keyword"></td>
-                    <td x-text="item.mshs"></td>
+                    <td><span class="tag-tpb" x-text="item.keyword"></span></td>
+                    <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="item.mshs"></span></td>
                     <td x-text="item.tenHS"></td>
                   </tr>
                 </template>
@@ -908,9 +914,9 @@
           </div>
         </div>
 
-        <div class="mt-4">
-          <h4>Nhóm Gia đình (<span x-text="familyGroups.length"></span>)</h4>
-          <p class="text-sm text-secondary mt-2">Dùng khi 1 phụ huynh đóng tiền cho nhiều con.</p>
+        <div class="settings-section">
+          <h4>👨‍👩‍👧 Nhóm Gia đình <span class="count-badge" x-text="familyGroups.length"></span></h4>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Dùng khi 1 phụ huynh đóng tiền cho nhiều con.</p>
           <div class="table-container compact-table">
             <table>
               <thead>

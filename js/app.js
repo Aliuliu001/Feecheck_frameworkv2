@@ -93,6 +93,8 @@ function appComponent() {
     stkPhuData: [],
     keywordData: [],
     familyGroups: [],
+    stkPhuSearch: '',
+    keywordSearch: '',
 
     init() {
       // Set default month
