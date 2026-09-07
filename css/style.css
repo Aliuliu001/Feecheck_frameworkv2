@@ -68,8 +68,8 @@ body {
 /* Typography */
 h1 { font-size: 24px; font-weight: 600; color: var(--text-main); }
 h2 { font-size: 26px; font-weight: 700; color: var(--text-main); margin-bottom: 16px; }
-h3 { font-size: 20px; font-weight: 600; color: var(--text-main); margin-bottom: 12px; }
-h4 { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+h3 { font-size: 22px; font-weight: 600; color: var(--text-main); margin-bottom: 16px; }
+h4 { font-size: 18px; font-weight: 600; color: var(--text-main); margin-bottom: 10px; }
 p { font-size: 15px; color: var(--text-muted); margin-bottom: 12px; }
 
 /* Header */
@@ -117,20 +117,22 @@ p { font-size: 15px; color: var(--text-muted); margin-bottom: 12px; }
 #main-content { padding: 32px 48px; max-width: 1400px; margin: 0 auto; }
 
 /* Settings Panel */
-.settings-panel { margin-bottom: 24px; }
-.settings-form { display: flex; gap: 24px; flex-wrap: wrap; }
-.settings-form .form-group { min-width: 200px; flex: 1; }
+.settings-panel { margin-bottom: 32px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.settings-form { display: flex; gap: 32px; flex-wrap: wrap; }
+.settings-form .form-group { min-width: 240px; flex: 1; margin-bottom: 0; }
+.settings-form label { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.settings-form input { height: 48px; font-size: 16px; border-radius: 10px; }
 
 /* Glass Card */
-.glass-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-card); padding: 24px; }
+.glass-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 
 /* Help Text */
-.help-text { font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
+.help-text { font-size: 14px; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
 
-/* Status Text */
-.status-text { font-size: 14px; font-weight: 600; margin-top: 12px; }
-.status-text.warning { color: var(--color-yellow); }
-.status-text.success { color: var(--color-green); }
+/* Status Text - Pill Badge Style */
+.status-text { font-size: 15px; font-weight: 700; margin-top: 16px; display: inline-block; padding: 8px 20px; border-radius: 980px; }
+.status-text.warning { color: #8A5A00; background: #FFF3D6; border: 1px solid #F5C542; }
+.status-text.success { color: var(--color-green); background: #E8F5E9; border: 1px solid var(--color-green); }
 
 /* Drop Zone Success State */
 .drop-zone.success { border: 2px solid var(--color-green); background: #f0fdf4; }
@@ -220,17 +222,18 @@ textarea { height: auto; min-height: 80px; padding: 12px; resize: vertical; }
 
 /* Drop Zones */
 .drop-zone {
-  min-height: 220px; background: var(--bg-card); border: 2px dashed var(--border-color);
-  border-radius: 16px; padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.2s;
+  min-height: 240px; background: var(--bg-card); border: 2px dashed var(--border-color);
+  border-radius: 20px; padding: 36px 28px; text-align: center; cursor: pointer; transition: all 0.2s;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
-.drop-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+.drop-zone:hover { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 4px 16px rgba(92,74,58,0.12); }
 .drop-zone.drag-over { border: 2px solid var(--primary); background: var(--primary-light); }
 .drop-zone.done { border: 2px solid var(--color-green); background: #f0fdf4; }
 .drop-zone.success { border: 2px solid var(--color-green); background: #f0fdf4; }
-.drop-icon { font-size: 56px; margin-bottom: 20px; }
-.drop-title { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
-.drop-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.drop-icon { font-size: 64px; margin-bottom: 20px; }
+.drop-title { font-size: 17px; font-weight: 600; color: var(--text-main); margin-bottom: 10px; }
+.drop-subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
 .drop-status { font-size: 14px; font-weight: 600; }
 .status-warn { color: var(--color-yellow); }
 .status-done { color: var(--color-green); }
@@ -357,7 +360,7 @@ textarea { height: auto; min-height: 80px; padding: 12px; resize: vertical; }
   #tab-bar { padding: 0 16px; }
 }
 @media (min-width: 768px) {
-  .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  .grid-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .grid-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
 }
 .fade-in { animation: fadeIn 0.3s ease-out; }
