@@ -272,13 +272,16 @@ window.Exporter = {
     const isTab6 = tabNum === 6;
     const isTab4 = tabNum === 4;
     const isTab7 = tabNum === 7;
+    const isTab1 = tabNum === 1;
     const headers = isTab6
       ? ['STT', 'Thành viên (số tiền được cấp)', 'Tổng CK thực tế', 'Tổng HP kỳ vọng', 'Chênh lệch', 'Lý do']
       : isTab4
         ? ['STT', 'MSHS', 'Họ tên', 'Lớp', 'Học phí', 'Lý do']
         : isTab7
           ? ['STT', 'MSHS', 'Lớp', 'Họ tên', 'Giáo viên', 'Học phí', 'Địa chỉ', 'Ghi chú', 'Nguồn CK']
-          : ['STT', 'MSHS', 'Họ tên', 'Lớp', 'Học phí'];
+          : isTab1
+            ? ['STT', 'MSHS', 'Mã lớp', 'Họ và tên HS', 'Giáo viên', 'Học phí', 'Địa chỉ', 'Ghi chú tháng trước']
+            : ['STT', 'MSHS', 'Họ tên', 'Lớp', 'Học phí'];
 
     let aoa;
     let totalHP = 0;
@@ -343,13 +346,20 @@ window.Exporter = {
           ).join(' | ');
           aoa.push([idx + 1, memberStr, r.tongCKGiaDinh || 0, r.kyVong || 0, r.chenhLech || 0, r.lyDo || '']);
         } else {
-          const row = [idx + 1, r.mshs, r.fullName, r.className, r.hocPhi || 0];
+          let row;
+          if (isTab1) {
+            row = [idx + 1, r.mshs, r.className || '', r.fullName, r.teacher || '', r.hocPhi || 0, r.diaChi || '', r.ghiChu || ''];
+          } else {
+            row = [idx + 1, r.mshs, r.fullName, r.className, r.hocPhi || 0];
+          }
           if (isTab4) row.push(r.lyDo || '');
           aoa.push(row);
         }
         totalHP += (r.hocPhi || 0);
       });
-      const totalRow = ['', '', '', 'TỔNG CỘNG', totalHP];
+      const totalRow = isTab1
+        ? ['', '', '', '', 'TỔNG CỘNG', totalHP, '', '']
+        : ['', '', '', 'TỔNG CỘNG', totalHP];
       if (isTab6) totalRow.push('');
       else if (isTab4) totalRow.push('');
       aoa.push(totalRow);

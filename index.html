@@ -309,53 +309,53 @@
              x-transition>
       <div class="summary-cards">
         <div class="summary-card card">
-          <div class="card-icon">👥</div>
-          <div class="card-info">
-            <span class="card-label">Tổng HS</span>
+          <div class="card-top">
+            <span class="card-icon">👥</span>
             <span class="card-value" x-text="reportStats.totalStudents || 0"></span>
           </div>
+          <div class="card-label">Tổng HS</div>
         </div>
         <div class="summary-card card success">
-          <div class="card-icon">✅</div>
-          <div class="card-info">
-            <span class="card-label">Đã đóng</span>
+          <div class="card-top">
+            <span class="card-icon">✅</span>
             <span class="card-value" x-text="reportStats.paidCount || 0"></span>
           </div>
+          <div class="card-label">Đã đóng</div>
         </div>
         <div class="summary-card card error">
-          <div class="card-icon">❌</div>
-          <div class="card-info">
-            <span class="card-label">Chưa đóng</span>
+          <div class="card-top">
+            <span class="card-icon">❌</span>
             <span class="card-value" x-text="reportStats.unpaidCount || 0"></span>
           </div>
+          <div class="card-label">Chưa đóng</div>
         </div>
         <div class="summary-card card warning">
-          <div class="card-icon">⚠️</div>
-          <div class="card-info">
-            <span class="card-label">Đóng thiếu</span>
+          <div class="card-top">
+            <span class="card-icon">⚠️</span>
             <span class="card-value" x-text="reportStats.partialCount || 0"></span>
           </div>
+          <div class="card-label">Đóng thiếu</div>
         </div>
         <div class="summary-card card info">
-          <div class="card-icon">🔵</div>
-          <div class="card-info">
-            <span class="card-label">Đóng dư</span>
+          <div class="card-top">
+            <span class="card-icon">🔵</span>
             <span class="card-value" x-text="reportStats.overpaidCount || 0"></span>
           </div>
+          <div class="card-label">Đóng dư</div>
         </div>
         <div class="summary-card card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-          <div class="card-icon">📦</div>
-          <div class="card-info">
-            <span class="card-label">Đóng gói</span>
-            <span class="card-value" x-text="reportStats.packageCount || 0"></span>
+          <div class="card-top">
+            <span class="card-icon">📦</span>
+            <span class="card-value" style="color: white;" x-text="reportStats.packageCount || 0"></span>
           </div>
+          <div class="card-label" style="color: white;">Đóng gói</div>
         </div>
         <div class="summary-card card purple">
-          <div class="card-icon">💰</div>
-          <div class="card-info">
-            <span class="card-label">Tổng thu</span>
+          <div class="card-top">
+            <span class="card-icon">💰</span>
             <span class="card-value" x-text="$formatCurrency(reportStats.totalMoney || 0)"></span>
           </div>
+          <div class="card-label">Tổng thu</div>
         </div>
       </div>
 
@@ -490,53 +490,53 @@
       <!-- Summary cards -->
       <div class="summary-cards" style="margin-bottom: 1rem;">
         <div class="summary-card card">
-          <div class="card-icon">📋</div>
-          <div class="card-info">
-            <span class="card-label">DS HĐ tháng trước</span>
+          <div class="card-top">
+            <span class="card-icon">📋</span>
             <span class="card-value" x-text="$store.appState.accountingData.tab1?.length || 0"></span>
           </div>
+          <div class="card-label">DS HĐ tháng trước</div>
         </div>
         <div class="summary-card card success">
-          <div class="card-icon">🏦</div>
-          <div class="card-info">
-            <span class="card-label">CK VTB tháng này</span>
+          <div class="card-top">
+            <span class="card-icon">🏦</span>
             <span class="card-value" x-text="$store.appState.accountingData.tab2?.length || 0"></span>
           </div>
+          <div class="card-label">CK VTB tháng này</div>
         </div>
         <div class="summary-card card warning">
-          <div class="card-icon">📉</div>
-          <div class="card-info">
-            <span class="card-label">Giảm bớt</span>
+          <div class="card-top">
+            <span class="card-icon">📉</span>
             <span class="card-value" x-text="$store.appState.accountingData.tab3?.length || 0"></span>
           </div>
+          <div class="card-label">Giảm bớt</div>
         </div>
         <div class="summary-card card error">
-          <div class="card-icon">🛑</div>
-          <div class="card-info">
-            <span class="card-label">Stop - nghỉ học</span>
+          <div class="card-top">
+            <span class="card-icon">🛑</span>
             <span class="card-value" x-text="$store.appState.accountingData.tab4?.length || 0"></span>
           </div>
+          <div class="card-label">Stop - nghỉ học</div>
         </div>
         <div class="summary-card card info">
-          <div class="card-icon">📈</div>
-          <div class="card-info">
-            <span class="card-label">Tăng mới</span>
+          <div class="card-top">
+            <span class="card-icon">📈</span>
             <span class="card-value" x-text="$store.appState.accountingData.tab5?.length || 0"></span>
           </div>
+          <div class="card-label">Tăng mới</div>
         </div>
         <div class="summary-card card" style="background: linear-gradient(135deg, #f85149 0%, #d29922 100%);">
-          <div class="card-icon">⚠️</div>
-          <div class="card-info">
-            <span class="card-label">CK sai tiền</span>
-            <span class="card-value" x-text="$store.appState.accountingData.tab6?.length || 0"></span>
+          <div class="card-top">
+            <span class="card-icon">⚠️</span>
+            <span class="card-value" style="color: white;" x-text="$store.appState.accountingData.tab6?.length || 0"></span>
           </div>
+          <div class="card-label" style="color: white;">CK sai tiền</div>
         </div>
         <div class="summary-card card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-          <div class="card-icon">📋</div>
-          <div class="card-info">
-            <span class="card-label">Tổng hợp</span>
-            <span class="card-value" x-text="$store.appState.accountingData.tab7?.length || 0"></span>
+          <div class="card-top">
+            <span class="card-icon">📋</span>
+            <span class="card-value" style="color: white;" x-text="$store.appState.accountingData.tab7?.length || 0"></span>
           </div>
+          <div class="card-label" style="color: white;">Tổng hợp</div>
         </div>
       </div>
 
@@ -549,26 +549,32 @@
             <table>
               <thead>
                 <tr>
-                  <th>STT</th>
+                  <th style="width: 40px;">STT</th>
                   <th>MSHS</th>
-                  <th>Họ tên</th>
-                  <th>Lớp</th>
+                  <th>Mã lớp</th>
+                  <th>Họ và tên HS</th>
+                  <th>Giáo viên</th>
                   <th>Học phí</th>
+                  <th>Địa chỉ</th>
+                  <th>Ghi chú tháng trước</th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="!$store.appState.accountingData.tab1 || $store.appState.accountingData.tab1.length === 0">
                   <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
                   </tr>
                 </template>
                 <template x-for="(row, idx) in $store.appState.accountingData.tab1" :key="'tab1-' + idx">
                   <tr>
                     <td x-text="idx + 1"></td>
                     <td x-text="row.mshs"></td>
-                    <td x-text="row.hoTen"></td>
-                    <td x-text="row.lop"></td>
-                    <td x-text="$formatCurrency(row.hocPhi)"></td>
+                    <td x-text="row.className"></td>
+                    <td x-text="row.fullName"></td>
+                    <td x-text="row.teacher"></td>
+                    <td style="text-align: right; font-weight: 600; white-space: nowrap;" x-text="$formatCurrency(row.hocPhi)"></td>
+                    <td class="wrap" style="max-width: 200px; font-size: 13px;" x-text="row.diaChi || '—'"></td>
+                    <td class="wrap" style="max-width: 200px; font-size: 13px;" x-text="row.ghiChu || '—'"></td>
                   </tr>
                 </template>
               </tbody>
@@ -607,8 +613,8 @@
                   <tr>
                     <td x-text="idx + 1"></td>
                     <td x-text="row.mshs"></td>
-                    <td x-text="row.hoTen"></td>
-                    <td x-text="row.lop"></td>
+                    <td x-text="row.fullName"></td>
+                    <td x-text="row.className"></td>
                     <td x-text="$formatCurrency(row.hocPhi)"></td>
                   </tr>
                 </template>
@@ -648,8 +654,8 @@
                   <tr>
                     <td x-text="idx + 1"></td>
                     <td x-text="row.mshs"></td>
-                    <td x-text="row.hoTen"></td>
-                    <td x-text="row.lop"></td>
+                    <td x-text="row.fullName"></td>
+                    <td x-text="row.className"></td>
                     <td x-text="$formatCurrency(row.hocPhi)"></td>
                   </tr>
                 </template>
@@ -690,8 +696,8 @@
                   <tr>
                     <td x-text="idx + 1"></td>
                     <td x-text="row.mshs"></td>
-                    <td x-text="row.hoTen"></td>
-                    <td x-text="row.lop"></td>
+                    <td x-text="row.fullName"></td>
+                    <td x-text="row.className"></td>
                     <td x-text="$formatCurrency(row.hocPhi)"></td>
                     <td>
                       <select x-model="tab4Choice[row.mshs]" class="form-control" style="width: auto; font-size: 0.85rem;">
@@ -741,8 +747,8 @@
                   <tr>
                     <td x-text="idx + 1"></td>
                     <td x-text="row.mshs"></td>
-                    <td x-text="row.hoTen"></td>
-                    <td x-text="row.lop"></td>
+                    <td x-text="row.fullName"></td>
+                    <td x-text="row.className"></td>
                     <td x-text="$formatCurrency(row.hocPhi)"></td>
                   </tr>
                 </template>
@@ -765,12 +771,12 @@
             <table>
               <thead>
                 <tr>
-                  <th>STT</th>
-                  <th>MSHS</th>
-                  <th>Họ tên</th>
-                  <th>Lớp</th>
-                  <th>Học phí</th>
-                  <th>Ghi chú</th>
+                  <th style="width: 40px;">STT</th>
+                  <th>Thành viên (số tiền được cấp)</th>
+                  <th>Tổng CK thực tế</th>
+                  <th>Tổng HP kỳ vọng</th>
+                  <th>Chênh lệch</th>
+                  <th>Lý do</th>
                 </tr>
               </thead>
               <tbody>
@@ -782,11 +788,11 @@
                 <template x-for="(row, idx) in $store.appState.accountingData.tab6" :key="'tab6-' + idx">
                   <tr>
                     <td x-text="idx + 1"></td>
-                    <td x-text="row.mshs"></td>
-                    <td x-text="row.hoTen"></td>
-                    <td x-text="row.lop"></td>
-                    <td x-text="$formatCurrency(row.hocPhi)"></td>
-                    <td x-text="row.ghiChu" style="font-size: 0.85rem;"></td>
+                    <td class="wrap" style="max-width: 320px; font-size: 13px;" x-text="(row.memberDetails || []).map(m => `${m.mshs} (${m.fullName || m.mshs})`).join(' | ')"></td>
+                    <td style="text-align: right; font-weight: 600; white-space: nowrap;" x-text="$formatCurrency(row.tongCKGiaDinh || 0)"></td>
+                    <td style="text-align: right; white-space: nowrap;" x-text="$formatCurrency(row.kyVong || 0)"></td>
+                    <td style="text-align: right; font-weight: 700; white-space: nowrap;" x-text="$formatCurrency(row.chenhLech || 0)"></td>
+                    <td class="wrap" style="max-width: 220px; font-size: 13px;" x-text="row.lyDo || '—'"></td>
                   </tr>
                 </template>
               </tbody>
@@ -825,8 +831,8 @@
                   <tr>
                     <td x-text="idx + 1"></td>
                     <td x-text="row.mshs"></td>
-                    <td x-text="row.hoTen"></td>
-                    <td x-text="row.lop"></td>
+                    <td x-text="row.fullName"></td>
+                    <td x-text="row.className"></td>
                     <td x-text="$formatCurrency(row.hocPhi)"></td>
                     <td x-text="row.ghiChu" style="font-size: 0.85rem;"></td>
                   </tr>

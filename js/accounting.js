@@ -49,16 +49,18 @@ window.Accounting = {
       if (mshs) prevDataMap.set(mshs, typeof s === 'string' ? { mshs, fullName: mshs, hocPhi: 0, className: '' } : s);
     }
 
-    // Tab 1: DS HĐ Tháng trước
+    // Tab 1: DS HĐ Tháng trước (giữ đủ field từ file import: GV, Địa chỉ, Ghi chú)
     const tab1 = prevMSHS.map(mshs => {
       const prevData = prevDataMap.get(mshs) || {};
       const student = (currMap || new Map()).get(mshs);
       return {
         mshs,
-        fullName: student ? student.fullName : (prevData.fullName || mshs),
-        className: student ? student.className : (prevData.className || ''),
-        hocPhi: student ? (Number(student.hocPhi) || 0) : (prevData.hocPhi || 0),
-        teacher: student ? student.teacher : ''
+        fullName: prevData.fullName || (student ? student.fullName : mshs),
+        className: prevData.className || (student ? student.className : ''),
+        hocPhi: (prevData.hocPhi != null && prevData.hocPhi !== '') ? prevData.hocPhi : (student ? (Number(student.hocPhi) || 0) : 0),
+        teacher: prevData.teacher || (student ? student.teacher : ''),
+        diaChi: prevData.diaChi || (student ? student.diaChi : ''),
+        ghiChu: prevData.ghiChu || ''
       };
     });
 

@@ -369,8 +369,10 @@ window.Importer = {
           stt: this.findColumnIndex(headers, ['STT']),
           mshs: this.findColumnIndex(headers, ['MSHS', 'Mã HS', 'Mã']),
           fullName: this.findColumnIndex(headers, ['Họ tên', 'Tên', 'Full name']),
-          className: this.findColumnIndex(headers, ['Lớp', 'Class']),
+          className: this.findColumnIndex(headers, ['Lớp', 'Class', 'Mã lớp']),
+          teacher: this.findColumnIndex(headers, ['Giáo viên', 'Teacher', 'GV']),
           hocPhi: this.findColumnIndex(headers, ['Học phí', 'Tổng HP']),
+          diaChi: this.findColumnIndex(headers, ['Địa chỉ', 'Address', 'Dia chi', 'DiaChi']),
           trangThai: this.findColumnIndex(headers, ['Trạng thái', 'Status']),
           ghiChu: this.findColumnIndex(headers, ['Ghi chú', 'Note'])
         };
@@ -385,7 +387,9 @@ window.Importer = {
             mshs: (row[colMap.mshs] || '').toString().trim().toUpperCase(),
             fullName: colMap.fullName >= 0 ? (row[colMap.fullName] || '').toString().trim() : '',
             className: colMap.className >= 0 ? (row[colMap.className] || '').toString().trim() : '',
+            teacher: colMap.teacher >= 0 ? (row[colMap.teacher] || '').toString().trim() : '',
             hocPhi: colMap.hocPhi >= 0 ? Utils.parseNumber(row[colMap.hocPhi]) : 0,
+            diaChi: colMap.diaChi >= 0 ? (row[colMap.diaChi] || '').toString().trim() : '',
             trangThai: colMap.trangThai >= 0 ? (row[colMap.trangThai] || '').toString().trim() : '',
             ghiChu: colMap.ghiChu >= 0 ? (row[colMap.ghiChu] || '').toString().trim() : ''
           });
