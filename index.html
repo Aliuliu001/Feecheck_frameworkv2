@@ -93,10 +93,11 @@
       <div class="grid-3col">
         <!-- DS Học sinh -->
         <div class="drop-zone card glass-card" 
-             :class="{ 'success': $store.appState.importStatus.dsHocSinh }"
+             :class="{ 'success': $store.appState.importStatus.dsHocSinh, 'drag-over': dsHocSinhDragging }"
              @click="$refs.fileDs.click()"
-             @dragover.prevent
-             @drop.prevent="handleFileImport($event.dataTransfer, 'dsHocSinh')">
+             @dragover.prevent="dsHocSinhDragging = true"
+             @dragleave="dsHocSinhDragging = false"
+             @drop.prevent="dsHocSinhDragging = false; handleFileDrop($event, 'dsHocSinh')">
           <div class="drop-icon">👥</div>
           <h4>📋 DS Học sinh tổng (Google Trang tính)</h4>
           <p class="status-text" :class="$store.appState.importStatus.dsHocSinh ? 'success' : 'warning'">
@@ -113,10 +114,11 @@
         
         <!-- VietinBank -->
         <div class="drop-zone card glass-card"
-             :class="{ 'success': $store.appState.importStatus.vietinBank }"
+             :class="{ 'success': $store.appState.importStatus.vietinBank, 'drag-over': vtbDragging }"
              @click="$refs.fileVtb.click()"
-             @dragover.prevent
-             @drop.prevent="handleFileImport($event.dataTransfer, 'vietinBank')">
+             @dragover.prevent="vtbDragging = true"
+             @dragleave="vtbDragging = false"
+             @drop.prevent="vtbDragging = false; handleFileDrop($event, 'vietinBank')">
           <div class="drop-icon">🏦</div>
           <h4>Sao kê VietinBank</h4>
           <p class="status-text" :class="$store.appState.importStatus.vietinBank ? 'success' : 'warning'">
@@ -132,10 +134,11 @@
         
         <!-- TPBank -->
         <div class="drop-zone card glass-card"
-             :class="{ 'success': $store.appState.importStatus.tpBank }"
+             :class="{ 'success': $store.appState.importStatus.tpBank, 'drag-over': tpbDragging }"
              @click="$refs.fileTpb.click()"
-             @dragover.prevent
-             @drop.prevent="handleFileImport($event.dataTransfer, 'tpBank')">
+             @dragover.prevent="tpbDragging = true"
+             @dragleave="tpbDragging = false"
+             @drop.prevent="tpbDragging = false; handleFileDrop($event, 'tpBank')">
           <div class="drop-icon">🏢</div>
           <h4>Sao kê TPBank (từ ABBYY)</h4>
           <p class="status-text" :class="$store.appState.importStatus.tpBank ? 'success' : 'warning'">
@@ -151,10 +154,11 @@
         
         <!-- Tiền mặt -->
         <div class="drop-zone card glass-card"
-             :class="{ 'success': $store.appState.importStatus.tienMat }"
+             :class="{ 'success': $store.appState.importStatus.tienMat, 'drag-over': cashDragging }"
              @click="$refs.fileCash.click()"
-             @dragover.prevent
-             @drop.prevent="handleFileImport($event.dataTransfer, 'tienMat')">
+             @dragover.prevent="cashDragging = true"
+             @dragleave="cashDragging = false"
+             @drop.prevent="cashDragging = false; handleFileDrop($event, 'tienMat')">
           <div class="drop-icon">💵</div>
           <h4>Tiền mặt</h4>
           <p class="status-text" :class="$store.appState.importStatus.tienMat ? 'success' : 'warning'">
@@ -170,10 +174,11 @@
 
         <!-- File KT tháng trước -->
         <div class="drop-zone card glass-card" 
-             :class="{ 'success': $store.appState.importStatus.prevInvoice }"
+             :class="{ 'success': $store.appState.importStatus.prevInvoice, 'drag-over': prevDragging }"
              @click="$refs.filePrev.click()"
-             @dragover.prevent
-             @drop.prevent="handleFileImport($event.dataTransfer, 'prevInvoice')"
+             @dragover.prevent="prevDragging = true"
+             @dragleave="prevDragging = false"
+             @drop.prevent="prevDragging = false; handleFileDrop($event, 'prevInvoice')"
              style="border-color: rgba(255,193,7,0.3);">
           <div class="drop-icon">📄</div>
           <h4>📄 File Kế toán tháng TRƯỚC</h4>
@@ -210,7 +215,7 @@
         <div class="section-header">
           <h3>STK mới chưa map 
             <span class="counter-badge" 
-                  x-show="$store.appState.vtbUnmatched?.length > 0"
+                  x-show="$store.appState.vtbUnmatched?.length > 0" 
                   x-text="$store.appState.vtbUnmatched?.length || 0"></span>
           </h3>
         </div>
@@ -218,9 +223,11 @@
           <table>
             <thead>
               <tr>
+                <th>Ngày GD</th>
+                <th>Nội dung</th>
                 <th>STK</th>
                 <th>Tên TK</th>
-                <th>Tổng tiền</th>
+                <th>Số tiền</th>
                 <th>Gợi ý</th>
                 <th>Hành động</th>
               </tr>
@@ -228,17 +235,19 @@
             <tbody>
               <template x-if="!$store.appState.vtbUnmatched || $store.appState.vtbUnmatched.length === 0">
                 <tr>
-                  <td colspan="5" style="text-align: center; color: var(--text-secondary);">Không có STK mới</td>
+                  <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">✅ Không có STK mới — tất cả đã khớp!</td>
                 </tr>
               </template>
-              <template x-for="tx in ($store.appState.vtbUnmatched || [])" :key="tx.debitAccount">
+              <template x-for="tx in ($store.appState.vtbUnmatched || [])" :key="tx.debitAccount + tx.date">
                 <tr>
-                  <td x-text="tx.debitAccount"></td>
+                  <td x-text="$formatDate(tx.date)"></td>
+                  <td class="wrap" style="max-width: 250px;" x-text="tx.description"></td>
+                  <td style="font-family: monospace; font-weight: 600;" x-text="tx.debitAccount"></td>
                   <td x-text="tx.debitAccountName"></td>
-                  <td x-text="$formatCurrency(tx.credit)"></td>
-                  <td style="color: var(--text-secondary); font-size: 0.85rem;">Cần gán MSHS</td>
+                  <td class="col-amount" x-text="$formatCurrency(tx.credit || tx.amount)"></td>
+                  <td><span class="status-badge badge-yellow" x-text="getVtbSuggestion(tx)"></span></td>
                   <td>
-                    <button class="btn btn-sm btn-primary">Gán MSHS</button>
+                    <button class="btn btn-sm btn-primary" @click="openAssignVtb(tx)">Gán MSHS</button>
                   </td>
                 </tr>
               </template>
@@ -251,7 +260,7 @@
         <div class="section-header">
           <h3>GD TPBank chưa xác định 
             <span class="counter-badge" 
-                  x-show="$store.appState.tpbUnmatched?.length > 0"
+                  x-show="$store.appState.tpbUnmatched?.length > 0" 
                   x-text="$store.appState.tpbUnmatched?.length || 0"></span>
           </h3>
         </div>
@@ -262,24 +271,24 @@
                 <th>Ngày</th>
                 <th>Nội dung</th>
                 <th>Số tiền</th>
-                <th>Gợi ý</th>
+                <th>Gợi ý MSHS</th>
                 <th>Hành động</th>
               </tr>
             </thead>
             <tbody>
               <template x-if="!$store.appState.tpbUnmatched || $store.appState.tpbUnmatched.length === 0">
                 <tr>
-                  <td colspan="5" style="text-align: center; color: var(--text-secondary);">Không có GD chưa xác định</td>
+                  <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">✅ Không có GD chưa xác định!</td>
                 </tr>
               </template>
               <template x-for="tx in ($store.appState.tpbUnmatched || [])" :key="tx.date + tx.description">
                 <tr>
                   <td x-text="$formatDate(tx.date)"></td>
-                  <td x-text="tx.description"></td>
-                  <td x-text="$formatCurrency(tx.amount)"></td>
-                  <td style="color: var(--text-secondary); font-size: 0.85rem;">Cần thêm keyword</td>
+                  <td class="wrap" style="max-width: 300px;" x-text="tx.description"></td>
+                  <td class="col-amount" x-text="$formatCurrency(tx.amount)"></td>
+                  <td><span class="status-badge badge-yellow" x-text="getTpbSuggestion(tx)"></span></td>
                   <td>
-                    <button class="btn btn-sm btn-primary">Gán MSHS</button>
+                    <button class="btn btn-sm btn-primary" @click="openAssignTpb(tx)">Gán MSHS</button>
                   </td>
                 </tr>
               </template>
@@ -415,20 +424,20 @@
             <template x-for="(row, index) in filteredReportRows" :key="row.mshs + '-' + index">
               <tr>
                 <td x-text="index + 1"></td>
-                <td x-text="row.mshs"></td>
-                <td x-text="row.hoTen"></td>
-                <td x-text="row.lop"></td>
-                <td x-text="row.giaoVien"></td>
-                <td x-text="$formatCurrency(row.tongHP)"></td>
-                <td x-text="$formatCurrency(row.chuyenKhoanVTB)"></td>
-                <td x-text="$formatCurrency(row.tienMat)"></td>
-                <td x-text="$formatCurrency(row.chuyenKhoanTPB)"></td>
-                <td x-text="$formatCurrency(row.tongDaDong)"></td>
+                <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="row.mshs"></span></td>
+                <td style="font-weight: 600;" x-text="row.fullName"></td>
+                <td x-text="row.className"></td>
+                <td x-text="row.teacher"></td>
+                <td class="col-amount" x-text="$formatCurrency(row.tongHocPhi)"></td>
+                <td class="col-amount" x-text="$formatCurrency(row.chuyenKhoanVTB)"></td>
+                <td class="col-amount" x-text="$formatCurrency(row.tienMat)"></td>
+                <td class="col-amount" x-text="$formatCurrency(row.chuyenKhoanTPB)"></td>
+                <td class="col-amount" style="font-weight: 700; color: var(--primary);" x-text="$formatCurrency(row.tongDaDong)"></td>
                 <td x-html="getNguonCK(row)"></td>
                 <td>
                   <span class="status-badge" :class="getStatusBadge(row.trangThai)" x-text="row.trangThai"></span>
                 </td>
-                <td x-text="row.ghiChu" style="font-size: 0.85rem; color: var(--text-secondary);"></td>
+                <td class="wrap" x-text="row.ghiChu" style="font-size: 0.85rem; color: var(--text-secondary); max-width: 250px;"></td>
               </tr>
             </template>
           </tbody>

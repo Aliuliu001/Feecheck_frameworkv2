@@ -95,6 +95,12 @@ function appComponent() {
     familyGroups: [],
     stkPhuSearch: '',
     keywordSearch: '',
+    // Drag states
+    dsHocSinhDragging: false,
+    vtbDragging: false,
+    tpbDragging: false,
+    cashDragging: false,
+    prevDragging: false,
 
     init() {
       // Set default month
@@ -126,9 +132,22 @@ function appComponent() {
     },
 
     async handleFileImport(event, type) {
-      const file = event.target.files[0];
+      const file = event.target ? event.target.files[0] : null;
       if (!file) return;
-      
+      await this.processImportFile(file, type);
+      if (event.target) event.target.value = null; // reset
+    },
+
+    async handleFileDrop(event, type) {
+      const files = event.dataTransfer ? event.dataTransfer.files : null;
+      if (!files || files.length === 0) {
+        this.showToast('❌ Không tìm thấy file. Thử click để chọn file.', 'error');
+        return;
+      }
+      await this.processImportFile(files[0], type);
+    },
+
+    async processImportFile(file, type) {
       this.showLoading = true;
       try {
         let result;
@@ -170,7 +189,6 @@ function appComponent() {
         console.error('Import error:', err);
       } finally {
         this.showLoading = false;
-        event.target.value = null; // reset
       }
     },
 
@@ -290,6 +308,50 @@ function appComponent() {
       if (status === 'Đóng dư') return 'status-overpaid';
       if (status === '📦 Đã đóng gói') return 'status-package';
       return 'badge-default';
+    },
+
+    // Exception suggestions (reuse Matcher.suggestMatch logic)
+    getVtbSuggestion(tx) {
+      const students = this.$store.appState.students || [];
+      if (!students.length) return 'Cần gán MSHS';
+      const sug = window.Matcher.suggestMatch(tx, students);
+      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].hoTen || ''})`;
+      return 'Cần gán MSHS';
+    },
+
+    getTpbSuggestion(tx) {
+      const students = this.$store.appState.students || [];
+      if (!students.length) return 'Cần thêm keyword';
+      const sug = window.Matcher.suggestMatch(tx, students);
+      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].hoTen || ''})`;
+      return 'Cần thêm keyword';
+    },
+
+    // Manual assign VTB: save STK mapping, re-run matching
+    openAssignVtb(tx) {
+      const mshs = prompt(`Gán MSHS cho STK ${tx.debitAccount} (${tx.debitAccountName || ''}):\nNhập mã MSHS:`);
+      if (!mshs || !mshs.trim()) return;
+      const m = mshs.trim().toUpperCase();
+      const list = window.Storage.loadSTKPhu() || [];
+      list.push({ mshs: m, stk: tx.debitAccount, tenTK: tx.debitAccountName || '' });
+      window.Storage._set('joy_stk_phu', list);
+      this.loadSettingsUI();
+      this.showToast(`✅ Đã lưu STK ${tx.debitAccount} → ${m}. Đang chạy lại đối soát...`, 'success');
+      this.runMatching();
+    },
+
+    // Manual assign TPB: save keyword mapping, re-run matching
+    openAssignTpb(tx) {
+      const mshs = prompt(`Gán MSHS cho GD TPBank:\n"${tx.description}"\nNhập mã MSHS:`);
+      if (!mshs || !mshs.trim()) return;
+      const m = mshs.trim().toUpperCase();
+      const kw = prompt('Nhập từ khóa để nhớ cho lần sau (VD: GAU KIEN):');
+      const list = window.Storage.loadKeywords() || [];
+      list.push({ keyword: (kw || '').trim().toUpperCase() || tx.description.substring(0, 20), mshs: m, tenHS: '' });
+      window.Storage._set('joy_keywords', list);
+      this.loadSettingsUI();
+      this.showToast(`✅ Đã lưu keyword → ${m}. Đang chạy lại đối soát...`, 'success');
+      this.runMatching();
     },
 
     // Accounting Actions
