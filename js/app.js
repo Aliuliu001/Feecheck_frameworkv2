@@ -107,6 +107,7 @@ function appComponent() {
     assignType: 'vtb',
     assignSuggestions: [],
     assignSearch: '',
+    assignKeyword: '',
     assignSelected: '',
     ignoredKeys: [],
     lastIgnored: null,
@@ -297,7 +298,18 @@ function appComponent() {
 
     // Report Utils
     get reportStats() {
-      return window.Reporter.getStatistics(this.filteredReportRows);
+      const s = window.Reporter.getStatistics(this.filteredReportRows || []);
+      // Map tên tiếng Việt từ Reporter sang tên UI đang dùng
+      return {
+        totalStudents: s.tongHS || 0,
+        paidCount: s.daDong || 0,
+        unpaidCount: s.chuaDong || 0,
+        partialCount: s.dongThieu || 0,
+        overpaidCount: s.dongDu || 0,
+        packageCount: s.dongGoi || 0,
+        totalMoney: s.tongThu || 0,
+        totalFee: s.tongHocPhi || 0
+      };
     },
 
     applyFilters() {
@@ -307,7 +319,8 @@ function appComponent() {
 
     exportReport() {
       const state = this.$store.appState;
-      const stats = window.Reporter.getStatistics(state.reportRows);
+      const s = window.Reporter.getStatistics(state.reportRows || []);
+      const stats = { tongHS: s.tongHS, daDong: s.daDong, chuaDong: s.chuaDong, dongThieu: s.dongThieu, dongDu: s.dongDu, dongGoi: s.dongGoi, tongThu: s.tongThu, tongHocPhi: s.tongHocPhi };
       window.Exporter.exportBaoCao(state.reportRows, stats, state.monthYear);
       this.showToast('✅ Đã xuất báo cáo!', 'success');
     },
@@ -346,7 +359,7 @@ function appComponent() {
         const chuTK = tx.tenChuTK || '—';
         const desc = (tx.description || '—').substring(0, 80);
         html += `<tr style="border-bottom: 1px solid var(--border-color);">`;
-        html += `<td style="padding: 8px; text-align: center; color: var(--text-secondary);">${idx + 1}</td>`;
+        html += `<td style="padding: 8px; text-align: center; color: var(--text-secondary);">${tx._rowNo || idx + 1}</td>`;
         html += `<td style="padding: 8px; white-space: nowrap;">${this.$formatDate(tx.date)}</td>`;
         html += `<td style="padding: 8px; white-space: nowrap;">${typeTag}</td>`;
         html += `<td style="padding: 8px; text-align: right; font-weight: 600; white-space: nowrap;">${this.$formatCurrency(tx.amount)}</td>`;
@@ -402,6 +415,14 @@ function appComponent() {
       this.assignTx = tx;
       this.assignType = type;
       this.assignSearch = '';
+      // Tự điền Từ khóa gợi ý cho mapping (STK phụ TPB / keyword)
+      const rawDesc = (tx.description || tx.explanation || '');
+      if (type === 'tpb') {
+        const kws = (window.Utils && window.Utils.extractKeywordsFromDescription) ? window.Utils.extractKeywordsFromDescription(rawDesc) : [];
+        this.assignKeyword = (kws && kws.length > 0) ? kws.slice(0, 3).join(' ') : rawDesc.substring(0, 20).trim().toUpperCase();
+      } else {
+        this.assignKeyword = '';
+      }
       // Auto-select gợi ý cao nhất nếu score >= 0.8
       this.assignSelected = (sug.length > 0 && sug[0].score >= 0.8) ? sug[0].mshs : '';
       this.showAssignModal = true;
@@ -426,18 +447,20 @@ function appComponent() {
     confirmAssign() {
       const m = (this.assignSelected || '').trim().toUpperCase();
       if (!m) { this.showToast('⚠️ Chưa chọn MSHS', 'warning'); return; }
+      const students = this.$store.appState.students || [];
+      const found = students.find(s => s.mshs === m);
+      if (!found) { this.showToast(`⚠️ Không tìm thấy MSHS ${m} trong DS học sinh`, 'error'); return; }
       const tx = this.assignTx;
       if (this.assignType === 'vtb') {
-        const list = window.Storage.loadSTKPhu() || [];
-        list.push({ mshs: m, stk: tx.debitAccount || tx.stkDoiUng || '', tenTK: tx.debitAccountName || tx.tenTKDoiUng || '' });
-        window.Storage._set('joy_stk_phu', list);
+        // Gán VTB = lưu mapping STK phụ (STK đối ứng → MSHS), lần sau tự khớp
+        window.Storage.addSTKPhu({ mshs: m, stk: tx.debitAccount || tx.stkDoiUng || '', tenTK: tx.debitAccountName || tx.tenTKDoiUng || '' });
         this.showToast(`✅ Đã lưu STK → ${m}. Đang chạy lại...`, 'success');
       } else {
-        const kw = (this.assignSearch || '').trim().toUpperCase();
-        const list = window.Storage.loadKeywords() || [];
-        list.push({ keyword: kw || (tx.description || tx.explanation || '').substring(0, 20), mshs: m, tenHS: this.assignStudentName });
-        window.Storage._set('joy_keywords', list);
-        this.showToast(`✅ Đã lưu keyword → ${m}. Đang chạy lại...`, 'success');
+        // Gán TPB = lưu keyword (Từ khóa → MSHS), lần sau tự khớp
+        const kwInput = (this.assignKeyword || '').trim().toUpperCase();
+        if (!kwInput) { this.showToast('⚠️ Nhập Từ khóa để lưu (VD: tên PH viết tắt)', 'warning'); return; }
+        window.Storage.addKeyword({ keyword: kwInput, mshs: m, tenHS: found.fullName || '' });
+        this.showToast(`✅ Đã lưu từ khóa "${kwInput}" → ${m}. Đang chạy lại...`, 'success');
       }
       this.showAssignModal = false;
       this.loadSettingsUI();

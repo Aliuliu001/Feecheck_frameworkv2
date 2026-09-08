@@ -286,6 +286,7 @@ window.Matcher = {
         description: tx.explanation || tx.description || '',
         account: tx.creditAccount || tx.account || tx.stkDoiUng || '',
         tenChuTK: tx.tenTKDoiUng || '',
+        _rowNo: tx._rowNo || tx.stt || '',
         st: tx.st || ''
       });
     };

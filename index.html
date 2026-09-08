@@ -460,7 +460,7 @@
 
     <!-- TAB 4: Báo cáo Kế toán -->
     <section id="accounting-tab" 
-             class="tab-content"
+             class="tab-content report-fullwidth"
              x-show="$store.appState.activeTab === 'accounting-tab'"
              x-transition>
       <div class="sub-tab-bar" style="flex-wrap: wrap;">
@@ -1130,6 +1130,13 @@
           </template>
         </div>
       </template>
+
+      <div x-show="assignType === 'tpb'" style="margin-bottom: 16px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 8px;">🔑 Từ khóa (lưu vào mapping, lần sau cùng PH này tự khớp):</label>
+        <input type="text" x-model="assignKeyword" placeholder="VD: NGUYEN VAN A"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; font-weight: 600; text-transform: uppercase;">
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Sửa lại cho ngắn gọn, dễ nhớ. Lần sau GD có chứa cụm này sẽ tự khớp vào MSHS đã chọn.</div>
+      </div>
 
       <div style="margin-bottom: 16px;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 8px;">🔍 Hoặc tìm thủ công:</label>

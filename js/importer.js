@@ -181,6 +181,7 @@ window.Importer = {
 
         transactions.push({
           stt: row[colMap.stt] || i,
+          _rowNo: i + 1,
           date: Utils.formatDate(row[colMap.ngayGD]),
           description: (row[colMap.moTa] || '').toString().trim(),
           debit: Utils.parseNumber(row[colMap.debit]),
@@ -253,6 +254,8 @@ window.Importer = {
         // if (isPersonal) return null;
                            
         transactions.push({
+          stt: i + 1,
+          _rowNo: i + 1,
           date: Utils.formatDate(row[colMap.date]),
           refNumber: colMap.ref >= 0 ? (row[colMap.ref] || '').toString().trim() : '',
           explanation: explanation,
