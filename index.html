@@ -244,7 +244,7 @@
                   <td class="wrap" style="max-width: 250px;" x-text="tx.description"></td>
                   <td style="font-family: monospace; font-weight: 600;" x-text="tx.debitAccount"></td>
                   <td x-text="tx.debitAccountName"></td>
-                  <td class="col-amount" x-text="$formatCurrency(tx.credit || tx.amount)"></td>
+                  <td style="text-align: center; font-weight: 700; white-space: nowrap;" x-text="$formatCurrency(tx.credit || tx.amount)"></td>
                   <td><span class="status-badge badge-yellow" x-text="getVtbSuggestion(tx)"></span></td>
                   <td>
                     <button class="btn btn-sm btn-primary" @click="openAssignVtb(tx)">Gán MSHS</button>

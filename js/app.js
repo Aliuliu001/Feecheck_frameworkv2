@@ -317,16 +317,23 @@ function appComponent() {
       html += `<th style="padding: 8px; text-align: left;">Ngày</th>`;
       html += `<th style="padding: 8px; text-align: left;">Nguồn</th>`;
       html += `<th style="padding: 8px; text-align: right;">Số tiền</th>`;
+      html += `<th style="padding: 8px; text-align: left;">STK</th>`;
+      html += `<th style="padding: 8px; text-align: left;">Chủ TK</th>`;
       html += `<th style="padding: 8px; text-align: left;">Nội dung</th>`;
       html += `</tr></thead><tbody>`;
       
       for (const tx of paymentData.txList) {
         const typeTag = tx.type === 'vtb' ? '🏦 VTB' : (tx.type === 'tpb' ? '🏦 TPBank' : '💵 Tiền mặt');
+        const stk = tx.account || '—';
+        const chuTK = tx.tenChuTK || '—';
+        const desc = (tx.description || '—').substring(0, 80);
         html += `<tr style="border-bottom: 1px solid var(--border-color);">`;
-        html += `<td style="padding: 8px;">${this.$formatDate(tx.date)}</td>`;
-        html += `<td style="padding: 8px;">${typeTag}</td>`;
-        html += `<td style="padding: 8px; text-align: right; font-weight: 600;">${this.$formatCurrency(tx.amount)}</td>`;
-        html += `<td style="padding: 8px; font-size: 13px; color: var(--text-secondary);">${tx.description || '—'}</td>`;
+        html += `<td style="padding: 8px; white-space: nowrap;">${this.$formatDate(tx.date)}</td>`;
+        html += `<td style="padding: 8px; white-space: nowrap;">${typeTag}</td>`;
+        html += `<td style="padding: 8px; text-align: right; font-weight: 600; white-space: nowrap;">${this.$formatCurrency(tx.amount)}</td>`;
+        html += `<td style="padding: 8px; font-family: monospace; font-size: 13px;">${stk}</td>`;
+        html += `<td style="padding: 8px; font-size: 13px;">${chuTK}</td>`;
+        html += `<td class="wrap" style="padding: 8px; font-size: 13px; color: var(--text-secondary); max-width: 200px;" title="${tx.description || ''}">${desc}</td>`;
         html += `</tr>`;
       }
       html += `</tbody></table></div>`;
@@ -347,20 +354,21 @@ function appComponent() {
     },
 
     // Exception suggestions (reuse Matcher.suggestMatch logic)
+    // Chỉ hiện gợi ý khi độ tin cậy cao (score >= 0.8), tránh gợi ý bừa
     getVtbSuggestion(tx) {
       const students = this.$store.appState.students || [];
-      if (!students.length) return 'Cần gán MSHS';
+      if (!students.length) return '—';
       const sug = window.Matcher.suggestMatch(tx, students);
-      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].studentName || sug[0].hoTen || ''})`;
-      return 'Cần gán MSHS';
+      if (sug && sug.length > 0 && sug[0].score >= 0.8) return `${sug[0].mshs} (${sug[0].studentName || sug[0].hoTen || ''})`;
+      return '—';
     },
 
     getTpbSuggestion(tx) {
       const students = this.$store.appState.students || [];
-      if (!students.length) return 'Cần thêm keyword';
+      if (!students.length) return '—';
       const sug = window.Matcher.suggestMatch(tx, students);
-      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].studentName || sug[0].hoTen || ''})`;
-      return 'Cần thêm keyword';
+      if (sug && sug.length > 0 && sug[0].score >= 0.8) return `${sug[0].mshs} (${sug[0].studentName || sug[0].hoTen || ''})`;
+      return '—';
     },
 
     // Manual assign VTB: save STK mapping, re-run matching
