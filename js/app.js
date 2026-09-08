@@ -230,6 +230,7 @@ function appComponent() {
         state.tpbMatched || [],
         state.cashPayments || []
       );
+      state.paymentsByMSHS = paymentsByMSHS;
       
       const familyGroups = window.Storage.loadFamilyGroups();
       state.reportRows = window.Reporter.generateReport(
@@ -295,10 +296,45 @@ function appComponent() {
     },
     
     getNguonCK(row) {
-      if (row.chuyenKhoanVTB > 0) return '🏦 VTB';
-      if (row.chuyenKhoanTPB > 0) return '🏦 TPBank';
-      if (row.tienMat > 0) return '💵 Tiền mặt';
+      if (row.chuyenKhoanVTB > 0) return '<span class="tag-vtb" style="cursor: pointer;">🏦 VTB</span>';
+      if (row.chuyenKhoanTPB > 0) return '<span class="tag-tpb" style="cursor: pointer;">🏦 TPBank</span>';
+      if (row.tienMat > 0) return '<span class="tag-cash" style="cursor: pointer;">💵 Tiền mặt</span>';
       return '—';
+    },
+
+    showNguonCKDetail(row) {
+      const mshs = row.mshs;
+      const paymentData = this.$store.appState.paymentsByMSHS?.get?.(mshs);
+      if (!paymentData || !paymentData.txList || paymentData.txList.length === 0) {
+        this.showToast('Không có thông tin chi tiết', 'warning');
+        return;
+      }
+      
+      let html = `<div style="max-height: 400px; overflow-y: auto;">`;
+      html += `<h4 style="margin-bottom: 12px;">💳 Chi tiết thanh toán: ${mshs}</h4>`;
+      html += `<table style="width: 100%; font-size: 14px; border-collapse: collapse;">`;
+      html += `<thead><tr style="background: var(--bg-main);">`;
+      html += `<th style="padding: 8px; text-align: left;">Ngày</th>`;
+      html += `<th style="padding: 8px; text-align: left;">Nguồn</th>`;
+      html += `<th style="padding: 8px; text-align: right;">Số tiền</th>`;
+      html += `<th style="padding: 8px; text-align: left;">Nội dung</th>`;
+      html += `</tr></thead><tbody>`;
+      
+      for (const tx of paymentData.txList) {
+        const typeTag = tx.type === 'vtb' ? '🏦 VTB' : (tx.type === 'tpb' ? '🏦 TPBank' : '💵 Tiền mặt');
+        html += `<tr style="border-bottom: 1px solid var(--border-color);">`;
+        html += `<td style="padding: 8px;">${this.$formatDate(tx.date)}</td>`;
+        html += `<td style="padding: 8px;">${typeTag}</td>`;
+        html += `<td style="padding: 8px; text-align: right; font-weight: 600;">${this.$formatCurrency(tx.amount)}</td>`;
+        html += `<td style="padding: 8px; font-size: 13px; color: var(--text-secondary);">${tx.description || '—'}</td>`;
+        html += `</tr>`;
+      }
+      html += `</tbody></table></div>`;
+      
+      this.modalTitle = '💳 Chi tiết thanh toán';
+      this.modalBody = html;
+      this.modalConfirm = null;
+      this.showModal = true;
     },
 
     getStatusBadge(status) {
@@ -315,7 +351,7 @@ function appComponent() {
       const students = this.$store.appState.students || [];
       if (!students.length) return 'Cần gán MSHS';
       const sug = window.Matcher.suggestMatch(tx, students);
-      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].hoTen || ''})`;
+      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].studentName || sug[0].hoTen || ''})`;
       return 'Cần gán MSHS';
     },
 
@@ -323,7 +359,7 @@ function appComponent() {
       const students = this.$store.appState.students || [];
       if (!students.length) return 'Cần thêm keyword';
       const sug = window.Matcher.suggestMatch(tx, students);
-      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].hoTen || ''})`;
+      if (sug && sug.length > 0) return `Gợi ý: ${sug[0].mshs} (${sug[0].studentName || sug[0].hoTen || ''})`;
       return 'Cần thêm keyword';
     },
 

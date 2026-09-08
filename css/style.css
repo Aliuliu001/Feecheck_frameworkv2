@@ -121,6 +121,12 @@ p { font-size: 15px; color: var(--text-muted); margin-bottom: 12px; }
 /* Main Content */
 #main-content { padding: 32px 48px; max-width: 1400px; margin: 0 auto; }
 
+/* Report full width - break out of container */
+.report-fullwidth { max-width: 100%; padding-left: 24px; padding-right: 24px; }
+.report-fullwidth .summary-cards { max-width: 1400px; margin-left: auto; margin-right: auto; }
+.report-fullwidth .filters-bar { max-width: 1400px; margin-left: auto; margin-right: auto; }
+.report-fullwidth .table-container { max-width: none; overflow-x: auto; }
+
 /* Settings Panel */
 .settings-panel { margin-bottom: 32px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .settings-form { display: flex; gap: 32px; flex-wrap: wrap; }
@@ -302,8 +308,8 @@ textarea { height: auto; min-height: 80px; padding: 12px; resize: vertical; }
 .compact-table tbody tr:nth-child(even) { background: #FAF8F4; }
 .col-amount { 
   font-weight: 700; font-size: 16px; 
-  font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
   white-space: nowrap; text-align: right;
 }
 /* Money cells - never overflow */

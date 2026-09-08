@@ -283,9 +283,9 @@
               </template>
               <template x-for="tx in ($store.appState.tpbUnmatched || [])" :key="tx.date + tx.description">
                 <tr>
-                  <td x-text="$formatDate(tx.date)"></td>
-                  <td class="wrap" style="max-width: 300px;" x-text="tx.description"></td>
-                  <td class="col-amount" x-text="$formatCurrency(tx.amount)"></td>
+                  <td x-text="$formatDate(tx.date || tx.transactionDate)"></td>
+                  <td class="wrap" style="max-width: 300px;" x-text="tx.description || tx.explanation"></td>
+                  <td class="col-amount" x-text="$formatCurrency(tx.amount || tx.credit)"></td>
                   <td><span class="status-badge badge-yellow" x-text="getTpbSuggestion(tx)"></span></td>
                   <td>
                     <button class="btn btn-sm btn-primary" @click="openAssignTpb(tx)">Gán MSHS</button>
@@ -301,7 +301,7 @@
 
     <!-- TAB 3: Báo cáo Đối soát -->
     <section id="report-tab" 
-             class="tab-content"
+             class="tab-content report-fullwidth"
              x-show="$store.appState.activeTab === 'report-tab'"
              x-transition>
       <div class="summary-cards">
