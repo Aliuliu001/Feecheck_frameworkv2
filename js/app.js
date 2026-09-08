@@ -101,6 +101,14 @@ function appComponent() {
     tpbDragging: false,
     cashDragging: false,
     prevDragging: false,
+    // Assign modal state
+    showAssignModal: false,
+    assignTx: null,
+    assignType: 'vtb',
+    assignSuggestions: [],
+    assignSearch: '',
+    assignSelected: '',
+    ignoredKeys: [],
 
     init() {
       // Set default month
@@ -109,6 +117,7 @@ function appComponent() {
       
       // Load UI settings
       this.loadSettingsUI();
+      this.ignoredKeys = window.Storage._get('joy_ignored_tx') || [];
     },
 
     loadSettingsUI() {
@@ -372,30 +381,72 @@ function appComponent() {
     },
 
     // Manual assign VTB: save STK mapping, re-run matching
-    openAssignVtb(tx) {
-      const mshs = prompt(`Gán MSHS cho STK ${tx.debitAccount} (${tx.debitAccountName || ''}):\nNhập mã MSHS:`);
-      if (!mshs || !mshs.trim()) return;
-      const m = mshs.trim().toUpperCase();
-      const list = window.Storage.loadSTKPhu() || [];
-      list.push({ mshs: m, stk: tx.debitAccount, tenTK: tx.debitAccountName || '' });
-      window.Storage._set('joy_stk_phu', list);
+    openAssignVtb(tx) { this.openAssignModal(tx, 'vtb'); },
+    openAssignTpb(tx) { this.openAssignModal(tx, 'tpb'); },
+
+    // Modal Gán MSHS: top 3 gợi ý + search thủ công, tên tự nhảy theo DS HS
+    openAssignModal(tx, type) {
+      const students = this.$store.appState.students || [];
+      const sug = window.Matcher.suggestMatch(tx, students) || [];
+      // Lưu full list top 5 (kể cả score thấp), sort cao → thấp
+      this.assignSuggestions = sug.slice(0, 5);
+      this.assignTx = tx;
+      this.assignType = type;
+      this.assignSearch = '';
+      // Auto-select gợi ý cao nhất nếu score >= 0.8
+      this.assignSelected = (sug.length > 0 && sug[0].score >= 0.8) ? sug[0].mshs : '';
+      this.showAssignModal = true;
+    },
+
+    get assignStudentName() {
+      const students = this.$store.appState.students || [];
+      const found = students.find(s => s.mshs === this.assignSelected);
+      return found ? found.fullName : '';
+    },
+
+    get assignFilteredStudents() {
+      const students = this.$store.appState.students || [];
+      const q = (this.assignSearch || '').toLowerCase().trim();
+      if (!q) return students.slice(0, 50);
+      return students.filter(s =>
+        (s.mshs || '').toLowerCase().includes(q) ||
+        (s.fullName || '').toLowerCase().includes(q)
+      ).slice(0, 50);
+    },
+
+    confirmAssign() {
+      const m = (this.assignSelected || '').trim().toUpperCase();
+      if (!m) { this.showToast('⚠️ Chưa chọn MSHS', 'warning'); return; }
+      const tx = this.assignTx;
+      if (this.assignType === 'vtb') {
+        const list = window.Storage.loadSTKPhu() || [];
+        list.push({ mshs: m, stk: tx.debitAccount || tx.stkDoiUng || '', tenTK: tx.debitAccountName || tx.tenTKDoiUng || '' });
+        window.Storage._set('joy_stk_phu', list);
+        this.showToast(`✅ Đã lưu STK → ${m}. Đang chạy lại...`, 'success');
+      } else {
+        const kw = (this.assignSearch || '').trim().toUpperCase();
+        const list = window.Storage.loadKeywords() || [];
+        list.push({ keyword: kw || (tx.description || tx.explanation || '').substring(0, 20), mshs: m, tenHS: this.assignStudentName });
+        window.Storage._set('joy_keywords', list);
+        this.showToast(`✅ Đã lưu keyword → ${m}. Đang chạy lại...`, 'success');
+      }
+      this.showAssignModal = false;
       this.loadSettingsUI();
-      this.showToast(`✅ Đã lưu STK ${tx.debitAccount} → ${m}. Đang chạy lại đối soát...`, 'success');
       this.runMatching();
     },
 
-    // Manual assign TPB: save keyword mapping, re-run matching
-    openAssignTpb(tx) {
-      const mshs = prompt(`Gán MSHS cho GD TPBank:\n"${tx.description}"\nNhập mã MSHS:`);
-      if (!mshs || !mshs.trim()) return;
-      const m = mshs.trim().toUpperCase();
-      const kw = prompt('Nhập từ khóa để nhớ cho lần sau (VD: GAU KIEN):');
-      const list = window.Storage.loadKeywords() || [];
-      list.push({ keyword: (kw || '').trim().toUpperCase() || tx.description.substring(0, 20), mshs: m, tenHS: '' });
-      window.Storage._set('joy_keywords', list);
-      this.loadSettingsUI();
-      this.showToast(`✅ Đã lưu keyword → ${m}. Đang chạy lại đối soát...`, 'success');
-      this.runMatching();
+    // Bỏ qua GD không phải học phí (VD: lãi ngân hàng, trả lại tiền)
+    ignoreTx(tx, type) {
+      const key = type === 'vtb'
+        ? `vtb|${tx.date}|${tx.debitAccount}|${tx.credit}`
+        : `tpb|${tx.date || tx.transactionDate}|${tx.description || tx.explanation}|${tx.amount || tx.credit}`;
+      if (!this.ignoredKeys.includes(key)) this.ignoredKeys.push(key);
+      const state = this.$store.appState;
+      if (type === 'vtb') state.vtbUnmatched = (state.vtbUnmatched || []).filter(t => t !== tx);
+      else state.tpbUnmatched = (state.tpbUnmatched || []).filter(t => t !== tx);
+      state.exceptionCount = (state.vtbUnmatched?.length || 0) + (state.tpbUnmatched?.length || 0);
+      window.Storage._set('joy_ignored_tx', this.ignoredKeys);
+      this.showToast('⏭️ Đã bỏ qua GD này', 'info');
     },
 
     // Accounting Actions
