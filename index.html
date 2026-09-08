@@ -218,6 +218,7 @@
                   x-show="$store.appState.vtbUnmatched?.length > 0" 
                   x-text="$store.appState.vtbUnmatched?.length || 0"></span>
           </h3>
+          <button class="btn btn-sm btn-outline" x-show="lastIgnored" @click="undoIgnore()">↩️ Hoàn tác bỏ qua</button>
         </div>
         <div class="table-container">
           <table>
@@ -389,23 +390,23 @@
         </div>
       </div>
 
-      <div class="table-container card glass-card mt-4">
-        <table>
+      <div class="table-container card glass-card mt-4" style="padding: 12px;">
+        <table style="font-size: 14px;">
           <thead>
             <tr>
-              <th style="width:40px">STT</th>
-              <th>MSHS</th>
-              <th>Họ tên</th>
-              <th>Lớp</th>
-              <th>GV</th>
-              <th>Tổng HP</th>
-              <th>VietinBank</th>
-              <th>Tiền mặt</th>
-              <th>TPBank</th>
-              <th>Tổng đã đóng</th>
-              <th>Nguồn CK</th>
-              <th>Trạng thái</th>
-              <th>Ghi chú</th>
+              <th style="width:36px; padding: 10px 8px;">STT</th>
+              <th style="padding: 10px 8px;">MSHS</th>
+              <th style="padding: 10px 8px;">Họ tên</th>
+              <th style="padding: 10px 8px;">Lớp</th>
+              <th style="padding: 10px 8px;">GV</th>
+              <th style="padding: 10px 8px;">Tổng HP</th>
+              <th style="padding: 10px 8px;">VietinBank</th>
+              <th style="padding: 10px 8px;">Tiền mặt</th>
+              <th style="padding: 10px 8px;">TPBank</th>
+              <th style="padding: 10px 8px;">Tổng đã đóng</th>
+              <th style="padding: 10px 8px;">Nguồn CK</th>
+              <th style="padding: 10px 8px;">Trạng thái</th>
+              <th style="padding: 10px 8px; min-width: 180px;">Ghi chú</th>
             </tr>
           </thead>
           <tbody>
@@ -872,13 +873,14 @@
                 <tr>
                   <th style="width: 25%;">MSHS</th>
                   <th style="width: 30%;">STK</th>
-                  <th style="width: 45%;">Tên TK</th>
+                  <th>Tên TK</th>
+                  <th style="width: 60px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="stkPhuData.length === 0">
                   <tr>
-                    <td colspan="3" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
+                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
                   </tr>
                 </template>
                 <template x-for="item in stkPhuData.filter(s => !stkPhuSearch || (s.mshs + s.stk + s.tenTK).toLowerCase().includes(stkPhuSearch.toLowerCase()))" :key="item.stk">
@@ -886,6 +888,7 @@
                     <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="item.mshs"></span></td>
                     <td style="font-family: monospace; font-weight: 600;" x-text="item.stk"></td>
                     <td x-text="item.tenTK"></td>
+                    <td><button class="btn btn-sm btn-danger" @click="deleteStkMapping(item.stk)" title="Xóa mapping sai">✕</button></td>
                   </tr>
                 </template>
               </tbody>
@@ -904,13 +907,14 @@
                 <tr>
                   <th style="width: 30%;">Từ khóa</th>
                   <th style="width: 25%;">MSHS</th>
-                  <th style="width: 45%;">Tên HS</th>
+                  <th>Tên HS</th>
+                  <th style="width: 60px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="keywordData.length === 0">
                   <tr>
-                    <td colspan="3" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
+                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
                   </tr>
                 </template>
                 <template x-for="item in keywordData.filter(k => !keywordSearch || (k.keyword + k.mshs + k.tenHS).toLowerCase().includes(keywordSearch.toLowerCase()))" :key="item.keyword">
@@ -918,6 +922,7 @@
                     <td><span class="tag-tpb" x-text="item.keyword"></span></td>
                     <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="item.mshs"></span></td>
                     <td x-text="item.tenHS"></td>
+                    <td><button class="btn btn-sm btn-danger" @click="deleteKeywordMapping(item.keyword)" title="Xóa keyword sai">✕</button></td>
                   </tr>
                 </template>
               </tbody>
@@ -1078,7 +1083,7 @@
        class="modal-backdrop" 
        style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9998; display: flex; align-items: center; justify-content: center;">
     <div class="modal-content card glass-card" 
-         style="max-width: 900px; width: 92%; max-height: 85vh; overflow-y: auto;"
+         style="max-width: 1000px; width: 94%; max-height: 85vh; overflow-y: auto;"
          @click.stop>
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
         <h3 x-text="modalTitle"></h3>
@@ -1111,14 +1116,16 @@
 
       <template x-if="assignSuggestions.length > 0">
         <div style="margin-bottom: 16px;">
-          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 8px;">⭐ Gợi ý từ hệ thống (cao → thấp):</label>
+          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 8px;">⭐ Gợi ý từ hệ thống:</label>
           <template x-for="(s, idx) in assignSuggestions" :key="s.mshs">
-            <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 2px solid var(--border-color); border-radius: 10px; margin-bottom: 8px; cursor: pointer; font-size: 15px;"
+            <label style="display: block; padding: 10px 14px; border: 2px solid var(--border-color); border-radius: 10px; margin-bottom: 8px; cursor: pointer; font-size: 15px;"
                    :style="assignSelected === s.mshs ? 'border-color: var(--primary); background: var(--primary-light);' : ''">
-              <input type="radio" name="assignPick" :value="s.mshs" x-model="assignSelected">
-              <span style="font-weight: 700;" x-text="s.mshs"></span>
-              <span x-text="s.studentName || s.hoTen || ''"></span>
-              <span class="status-badge" :class="s.score >= 0.8 ? 'badge-green' : 'badge-yellow'" style="font-size: 12px;" x-text="Math.round(s.score * 100) + '%'"></span>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="radio" name="assignPick" :value="s.mshs" x-model="assignSelected">
+                <span style="font-weight: 700;" x-text="s.mshs"></span>
+                <span x-text="s.studentName || s.hoTen || ''"></span>
+                <span class="status-badge" :class="s.score >= 0.8 ? 'badge-green' : 'badge-yellow'" style="font-size: 12px;" x-text="Math.round(s.score * 100) + '%'"></span>
+              </div>
             </label>
           </template>
         </div>

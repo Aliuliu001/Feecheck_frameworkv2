@@ -109,6 +109,7 @@ function appComponent() {
     assignSearch: '',
     assignSelected: '',
     ignoredKeys: [],
+    lastIgnored: null,
 
     init() {
       // Set default month
@@ -224,14 +225,21 @@ function appComponent() {
       if (state.vtbTransactions && state.vtbTransactions.length > 0) {
         vtbResult = window.Matcher.matchVietinBank(state.vtbTransactions, state.students, stkPhu);
         state.vtbMatched = vtbResult.matched;
-        state.vtbUnmatched = vtbResult.unmatched;
+        // Lọc GD đã bỏ qua (tránh gán nhầm cho HS khác sau khi bỏ qua)
+        state.vtbUnmatched = (vtbResult.unmatched || []).filter(tx => {
+          const key = `vtb|${tx.date}|${tx.debitAccount}|${tx.credit}`;
+          return !this.ignoredKeys.includes(key);
+        });
       }
       
       let tpbResult = { matched: [], unmatched: [] };
       if (state.tpbTransactions && state.tpbTransactions.length > 0) {
         tpbResult = window.Matcher.matchTPBank(state.tpbTransactions, keywords, state.students);
         state.tpbMatched = tpbResult.matched;
-        state.tpbUnmatched = tpbResult.unmatched;
+        state.tpbUnmatched = (tpbResult.unmatched || []).filter(tx => {
+          const key = `tpb|${tx.date || tx.transactionDate}|${tx.description || tx.explanation}|${tx.amount || tx.credit}`;
+          return !this.ignoredKeys.includes(key);
+        });
       }
       
       let paymentsByMSHS = window.Matcher.aggregateByMSHS(
@@ -323,6 +331,7 @@ function appComponent() {
       html += `<h4 style="margin-bottom: 12px;">💳 Chi tiết thanh toán: ${mshs}</h4>`;
       html += `<table style="width: 100%; font-size: 14px; border-collapse: collapse;">`;
       html += `<thead><tr style="background: var(--bg-main);">`;
+      html += `<th style="padding: 8px; text-align: center; width: 40px;">No.</th>`;
       html += `<th style="padding: 8px; text-align: left;">Ngày</th>`;
       html += `<th style="padding: 8px; text-align: left;">Nguồn</th>`;
       html += `<th style="padding: 8px; text-align: right;">Số tiền</th>`;
@@ -331,12 +340,13 @@ function appComponent() {
       html += `<th style="padding: 8px; text-align: left;">Nội dung</th>`;
       html += `</tr></thead><tbody>`;
       
-      for (const tx of paymentData.txList) {
+      paymentData.txList.forEach((tx, idx) => {
         const typeTag = tx.type === 'vtb' ? '🏦 VTB' : (tx.type === 'tpb' ? '🏦 TPBank' : '💵 Tiền mặt');
         const stk = tx.account || '—';
         const chuTK = tx.tenChuTK || '—';
         const desc = (tx.description || '—').substring(0, 80);
         html += `<tr style="border-bottom: 1px solid var(--border-color);">`;
+        html += `<td style="padding: 8px; text-align: center; color: var(--text-secondary);">${idx + 1}</td>`;
         html += `<td style="padding: 8px; white-space: nowrap;">${this.$formatDate(tx.date)}</td>`;
         html += `<td style="padding: 8px; white-space: nowrap;">${typeTag}</td>`;
         html += `<td style="padding: 8px; text-align: right; font-weight: 600; white-space: nowrap;">${this.$formatCurrency(tx.amount)}</td>`;
@@ -344,7 +354,7 @@ function appComponent() {
         html += `<td style="padding: 8px; font-size: 13px;">${chuTK}</td>`;
         html += `<td class="wrap" style="padding: 8px; font-size: 13px; color: var(--text-secondary); max-width: 200px;" title="${tx.description || ''}">${desc}</td>`;
         html += `</tr>`;
-      }
+      });
       html += `</tbody></table></div>`;
       
       this.modalTitle = '💳 Chi tiết thanh toán';
@@ -388,8 +398,7 @@ function appComponent() {
     openAssignModal(tx, type) {
       const students = this.$store.appState.students || [];
       const sug = window.Matcher.suggestMatch(tx, students) || [];
-      // Lưu full list top 5 (kể cả score thấp), sort cao → thấp
-      this.assignSuggestions = sug.slice(0, 5);
+      this.assignSuggestions = sug.slice(0, 3);
       this.assignTx = tx;
       this.assignType = type;
       this.assignSearch = '';
@@ -441,12 +450,47 @@ function appComponent() {
         ? `vtb|${tx.date}|${tx.debitAccount}|${tx.credit}`
         : `tpb|${tx.date || tx.transactionDate}|${tx.description || tx.explanation}|${tx.amount || tx.credit}`;
       if (!this.ignoredKeys.includes(key)) this.ignoredKeys.push(key);
+      // Lưu full object để hoàn tác chính xác (không gán nhầm HS khác)
+      this.lastIgnored = { tx: JSON.parse(JSON.stringify(tx)), type };
       const state = this.$store.appState;
       if (type === 'vtb') state.vtbUnmatched = (state.vtbUnmatched || []).filter(t => t !== tx);
       else state.tpbUnmatched = (state.tpbUnmatched || []).filter(t => t !== tx);
       state.exceptionCount = (state.vtbUnmatched?.length || 0) + (state.tpbUnmatched?.length || 0);
       window.Storage._set('joy_ignored_tx', this.ignoredKeys);
       this.showToast('⏭️ Đã bỏ qua GD này', 'info');
+    },
+
+    undoIgnore() {
+      if (!this.lastIgnored) { this.showToast('Không có gì để hoàn tác', 'warning'); return; }
+      const { tx, type } = this.lastIgnored;
+      const state = this.$store.appState;
+      if (type === 'vtb') state.vtbUnmatched = [...(state.vtbUnmatched || []), tx];
+      else state.tpbUnmatched = [...(state.tpbUnmatched || []), tx];
+      state.exceptionCount = (state.vtbUnmatched?.length || 0) + (state.tpbUnmatched?.length || 0);
+      const key = type === 'vtb'
+        ? `vtb|${tx.date}|${tx.debitAccount}|${tx.credit}`
+        : `tpb|${tx.date || tx.transactionDate}|${tx.description || tx.explanation}|${tx.amount || tx.credit}`;
+      this.ignoredKeys = this.ignoredKeys.filter(k => k !== key);
+      window.Storage._set('joy_ignored_tx', this.ignoredKeys);
+      this.lastIgnored = null;
+      this.showToast('↩️ Đã hoàn tác', 'success');
+    },
+
+    // Xóa mapping sai (STK / keyword) rồi chạy lại đối soát
+    deleteStkMapping(stk) {
+      if (!confirm(`Xóa mapping STK ${stk}? GD liên quan sẽ quay lại Ngoại lệ.`)) return;
+      window.Storage.removeSTKPhu(stk);
+      this.loadSettingsUI();
+      this.showToast('🗑️ Đã xóa mapping STK', 'success');
+      this.runMatching();
+    },
+
+    deleteKeywordMapping(keyword) {
+      if (!confirm(`Xóa keyword "${keyword}"? GD liên quan sẽ quay lại Ngoại lệ.`)) return;
+      window.Storage.removeKeyword(keyword);
+      this.loadSettingsUI();
+      this.showToast('🗑️ Đã xóa keyword', 'success');
+      this.runMatching();
     },
 
     // Accounting Actions
