@@ -433,7 +433,7 @@
                 <td class="col-amount" x-text="$formatCurrency(row.tienMat)"></td>
                 <td class="col-amount" x-text="$formatCurrency(row.chuyenKhoanTPB)"></td>
                 <td class="col-amount" style="font-weight: 700; color: var(--primary);" x-text="$formatCurrency(row.tongDaDong)"></td>
-                <td x-html="getNguonCK(row)"></td>
+                <td @click="showNguonCKDetail(row)" style="cursor: pointer;" title="Click để xem chi tiết" x-html="getNguonCK(row)"></td>
                 <td>
                   <span class="status-badge" :class="getStatusBadge(row.trangThai)" x-text="row.trangThai"></span>
                 </td>
