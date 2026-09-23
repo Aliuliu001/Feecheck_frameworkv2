@@ -239,12 +239,12 @@
                   <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">✅ Không có STK mới — tất cả đã khớp!</td>
                 </tr>
               </template>
-              <template x-for="tx in ($store.appState.vtbUnmatched || [])" :key="tx.debitAccount + tx.date">
+              <template x-for="(tx, idx) in ($store.appState.vtbUnmatched || [])" :key="'vtb-'+idx">
                 <tr>
                   <td x-text="$formatDate(tx.date)"></td>
                   <td class="wrap" style="max-width: 250px;" x-text="tx.description"></td>
-                  <td style="font-family: monospace; font-weight: 600;" x-text="tx.debitAccount"></td>
-                  <td x-text="tx.debitAccountName"></td>
+                  <td style="font-family: monospace; font-weight: 600;" x-text="tx.stkDoiUng || tx.debitAccount"></td>
+                  <td x-text="tx.tenTKDoiUng || tx.debitAccountName"></td>
                   <td style="text-align: center; font-weight: 700; white-space: nowrap;" x-text="$formatCurrency(tx.credit || tx.amount)"></td>
                   <td><span class="status-badge badge-yellow" x-text="getVtbSuggestion(tx)"></span></td>
                   <td style="white-space: nowrap;">
@@ -283,7 +283,7 @@
                   <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">✅ Không có GD chưa xác định!</td>
                 </tr>
               </template>
-              <template x-for="tx in ($store.appState.tpbUnmatched || [])" :key="tx.date + tx.description">
+              <template x-for="(tx, idx) in ($store.appState.tpbUnmatched || [])" :key="'tpb-'+idx">
                 <tr>
                   <td x-text="$formatDate(tx.date || tx.transactionDate)"></td>
                   <td class="wrap" style="max-width: 300px;" x-text="tx.description || tx.explanation"></td>

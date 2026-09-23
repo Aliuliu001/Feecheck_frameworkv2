@@ -139,6 +139,9 @@ window.Matcher = {
     console.log(`[MATCH] Keywords loaded: ${sortedKw.length}`, sortedKw);
 
     transactions.forEach(tx => {
+      // ✅ FIX: TPBank import dùng field description/amount — đồng bộ về explanation/credit để matcher đọc đúng
+      if (tx.description && !tx.explanation) tx.explanation = tx.description;
+      if ((tx.amount || 0) > 0 && !(tx.credit > 0)) tx.credit = tx.amount;
       const normDesc = Utils.normalizeText(tx.explanation);
       let found = false;
 
