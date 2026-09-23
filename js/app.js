@@ -587,19 +587,32 @@ function appComponent() {
     },
 
     exportBackup() {
-      // Backup TẤT CẢ dữ liệu quan trọng: mapping + Bỏ qua + gia đình + gói + tạm ngưng
+      // Backup TẤT CẢ dữ liệu quan trọng — quét sạch mọi key joy_* trong localStorage
+      // → sau này thêm key mới cũng tự vào backup, không bao giờ sót
       const backup = {
-        version: 1,
+        version: 2,
         exportDate: new Date().toISOString(),
-        joy_stk_phu: window.Storage.loadSTKPhu(),
-        joy_keywords: window.Storage.loadKeywords(),
-        joy_family_groups: window.Storage.loadFamilyGroups(),
-        joy_ignored_tx: window.Storage._get('joy_ignored_tx', []),
-        joy_packages: window.Storage._get('joy_packages', []),
-        joy_suspended: window.Storage._get('joy_suspended', []),
-        joy_fee_adjustments: window.Storage._get('joy_fee_adjustments', []),
-        joy_referrals: window.Storage._get('joy_referrals', [])
+        keys: {}
       };
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('joy_')) {
+            try { backup.keys[k] = JSON.parse(localStorage.getItem(k)); }
+            catch (e) { backup.keys[k] = localStorage.getItem(k); }
+          }
+        }
+      } catch (e) { console.error('Backup scan error:', e); }
+      // Giữ field phẳng cho file backup cũ vẫn đọc được
+      const K = backup.keys;
+      backup.joy_stk_phu = K.joy_stk_phu || [];
+      backup.joy_keywords = K.joy_keywords || [];
+      backup.joy_family_groups = K.joy_family_groups || [];
+      backup.joy_ignored_tx = K.joy_ignored_tx || [];
+      backup.joy_packages = K.joy_packages || [];
+      backup.joy_suspended = K.joy_suspended || [];
+      backup.joy_fee_adjustments = K.joy_fee_adjustments || [];
+      backup.joy_referrals = K.joy_referrals || [];
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -607,7 +620,54 @@ function appComponent() {
       a.download = `joy_backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 100);
-      this.showToast('✅ Đã tải backup (gồm mapping + Bỏ qua + gia đình...)', 'success');
+      const nKeys = Object.keys(backup.keys).length;
+      this.showToast(`✅ Đã tải backup (${nKeys} nhóm dữ liệu: mapping + Bỏ qua + gia đình + gói...)`, 'success');
+    },
+
+    exportBackupExcel() {
+      // Backup đọc được bằng Excel: 1 file nhiều sheet (STK Phụ / Từ khóa / Gia đình / Bỏ qua / Gói...)
+      // → để mở coi, in, lưu Drive. Không khôi phục ngược (muốn khôi phục dùng file JSON).
+      try {
+        const wb = XLSX.utils.book_new();
+        const fdate = (v) => { try { return window.Utils ? window.Utils.formatDate(v) : v; } catch (e) { return v; } };
+        // Sheet 1: STK Phụ
+        const stk = window.Storage.loadSTKPhu() || [];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stk.map(s => ({
+          'MSHS': s.mshs || '', 'STK': s.stk || '', 'Tên TK': s.tenTK || '', 'Ngày gán': fdate(s.addedDate)
+        }))), 'STK Phu');
+        // Sheet 2: Từ khóa TPBank
+        const kw = window.Storage.loadKeywords() || [];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kw.map(s => ({
+          'Từ khóa': s.keyword || '', 'MSHS': s.mshs || '', 'Tên HS': s.tenHS || s.studentName || '', 'Ngày gán': fdate(s.addedDate)
+        }))), 'Tu khoa TPB');
+        // Sheet 3: Nhóm gia đình
+        const fam = window.Storage.loadFamilyGroups() || [];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fam.map(g => ({
+          'Tên nhóm': g.name || g.groupName || '', 'MSHS thành viên': (g.members || []).join(', '),
+          'STK đại diện': g.stk || g.stkDaiDien || '', 'PH đại diện': g.parentName || g.tenPH || '', 'Ngày tạo': fdate(g.addedDate)
+        }))), 'Nhom Gia dinh');
+        // Sheet 4: Bỏ qua
+        const ig = window.Storage._get('joy_ignored_tx', []) || [];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ig.map(k => ({ 'Mã GD đã bỏ qua': k }))), 'Bo qua');
+        // Sheet 5: Gói (đóng trước nhiều tháng)
+        const pkg = window.Storage._get('joy_packages', []) || window.Storage.loadPackages?.() || [];
+        if (pkg.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pkg), 'Dong goi');
+        // Các sheet còn lại: vét sạch mọi key joy_* khác chưa lên sheet
+        try {
+          const done = new Set(['joy_stk_phu', 'joy_keywords', 'joy_family_groups', 'joy_ignored_tx', 'joy_packages']);
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('joy_') && !done.has(k)) {
+              let v = null;
+              try { v = JSON.parse(localStorage.getItem(k)); } catch (e) { v = localStorage.getItem(k); }
+              const rows = Array.isArray(v) ? v : [{ 'Giá trị': typeof v === 'object' ? JSON.stringify(v) : String(v ?? '') }];
+              if (rows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), k.replace('joy_', '').slice(0, 28) || 'Khac');
+            }
+          }
+        } catch (e) { console.error('Excel backup extra keys:', e); }
+        XLSX.writeFile(wb, `joy_backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+        this.showToast('✅ Đã tải backup Excel (để coi/in/lưu trữ)', 'success');
+      } catch (err) { this.showToast('❌ Lỗi xuất Excel: ' + err.message, 'error'); }
     },
 
     importBackup(event) {
@@ -617,7 +677,19 @@ function appComponent() {
       reader.onload = (e) => {
         try {
           const data = JSON.parse(e.target.result);
-          // GỘP (merge) thay vì ghi đè → không mất dữ liệu mới nhập tháng này
+          // File mới (v2): khôi phục TẤT CẢ key joy_* đã quét lúc backup → không sót loại nào
+          if (data.keys && typeof data.keys === 'object') {
+            Object.keys(data.keys).forEach(k => {
+              if (k.startsWith('joy_')) window.Storage._set(k, data.keys[k]);
+            });
+            this.ignoredKeys = window.Storage._get('joy_ignored_tx', []);
+            this.loadSettingsUI();
+            this.runMatching();
+            const nKeys = Object.keys(data.keys).length;
+            this.showToast(`✅ Đã khôi phục backup (${nKeys} nhóm dữ liệu, giữ nguyên dữ liệu tháng này nếu trùng)`, 'success');
+            return;
+          }
+          // File cũ (v1): GỘP (merge) thay vì ghi đè → không mất dữ liệu mới nhập tháng này
           let c1 = 0, c2 = 0, c3 = 0;
           const flat = data.joy_mappings || data.mappings || null;
           const stkList = data.joy_stk_phu || (flat && flat.joy_stk_phu) || [];

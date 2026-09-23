@@ -977,11 +977,13 @@
           <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">⚠️ Dữ liệu gán MSHS lưu trong trình duyệt (máy này). Refresh/Ctrl+Shift+R <strong>không mất</strong>, nhưng đổi máy / xóa cache sẽ mất. Nên tải backup sau mỗi lần gán xong.</p>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn btn-outline" @click="exportBackup()">💾 Tải backup toàn bộ (JSON)</button>
+            <button class="btn btn-outline" @click="exportBackupExcel()">📊 Tải backup Excel (mở được, in được)</button>
             <label class="btn btn-primary" style="cursor: pointer;">
               📂 Khôi phục từ file backup
               <input type="file" accept=".json" @change="importBackup($event)" style="display: none;">
             </label>
           </div>
+          <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">📌 JSON = để khôi phục lại vào app. Excel = để mở coi/in/lưu trữ, không khôi phục ngược được.</p>
         </div>
       </div>
     </section>
