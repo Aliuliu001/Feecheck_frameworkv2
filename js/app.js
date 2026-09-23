@@ -617,24 +617,39 @@ function appComponent() {
       reader.onload = (e) => {
         try {
           const data = JSON.parse(e.target.result);
-          if (data.joy_stk_phu) window.Storage.saveSTKPhu(data.joy_stk_phu);
-          if (data.joy_keywords) window.Storage.saveKeywords(data.joy_keywords);
-          if (data.joy_family_groups) window.Storage.saveFamilyGroups(data.joy_family_groups);
-          if (data.joy_ignored_tx) { window.Storage._set('joy_ignored_tx', data.joy_ignored_tx); this.ignoredKeys = data.joy_ignored_tx; }
-          if (data.joy_packages) window.Storage._set('joy_packages', data.joy_packages);
-          if (data.joy_suspended) window.Storage._set('joy_suspended', data.joy_suspended);
-          if (data.joy_fee_adjustments) window.Storage._set('joy_fee_adjustments', data.joy_fee_adjustments);
-          if (data.joy_referrals) window.Storage._set('joy_referrals', data.joy_referrals);
-          // Tương thích file mapping cũ (chỉ có 3 key)
-          if (data.joy_mappings || data.mappings) {
-            const m = data.joy_mappings || data.mappings;
-            if (m.joy_stk_phu) window.Storage.saveSTKPhu(m.joy_stk_phu);
-            if (m.joy_keywords) window.Storage.saveKeywords(m.joy_keywords);
-            if (m.joy_family_groups) window.Storage.saveFamilyGroups(m.joy_family_groups);
-          }
+          // GỘP (merge) thay vì ghi đè → không mất dữ liệu mới nhập tháng này
+          let c1 = 0, c2 = 0, c3 = 0;
+          const flat = data.joy_mappings || data.mappings || null;
+          const stkList = data.joy_stk_phu || (flat && flat.joy_stk_phu) || [];
+          const kwList = data.joy_keywords || (flat && flat.joy_keywords) || [];
+          const famList = data.joy_family_groups || (flat && flat.joy_family_groups) || [];
+          if (stkList.length) c1 = window.Storage.mergeSTKPhu(stkList);
+          if (kwList.length) c2 = window.Storage.mergeKeywords(kwList);
+          if (famList.length) c3 = window.Storage.mergeFamilyGroups(famList);
+          // Bỏ qua: gộp 2 danh sách, loại trùng
+          const oldIgnored = window.Storage._get('joy_ignored_tx', []);
+          const fileIgnored = data.joy_ignored_tx || [];
+          const mergedIgnored = [...new Set([...oldIgnored, ...fileIgnored])];
+          window.Storage._set('joy_ignored_tx', mergedIgnored);
+          this.ignoredKeys = mergedIgnored;
+          // Các loại khác: gộp theo id, giữ cả cũ + mới
+          const mergeById = (key, arr, idField) => {
+            if (!Array.isArray(arr) || !arr.length) return 0;
+            const cur = window.Storage._get(key, []);
+            const ids = new Set(cur.map(x => x && x[idField]));
+            let added = 0;
+            arr.forEach(x => { if (x && !ids.has(x[idField])) { cur.push(x); added++; } });
+            if (added) window.Storage._set(key, cur);
+            return added;
+          };
+          mergeById('joy_packages', data.joy_packages, 'packageId');
+          mergeById('joy_suspended', data.joy_suspended, 'id');
+          mergeById('joy_fee_adjustments', data.joy_fee_adjustments, 'id');
+          mergeById('joy_referrals', data.joy_referrals, 'id');
+          const addedIgnored = mergedIgnored.length - oldIgnored.length;
           this.loadSettingsUI();
           this.runMatching();
-          this.showToast('✅ Đã khôi phục backup! Đang chạy lại đối soát...', 'success');
+          this.showToast(`✅ Đã gộp backup: +${c1} STK, +${c2} từ khóa, +${c3} gia đình, +${addedIgnored} bỏ qua (giữ nguyên dữ liệu tháng này)`, 'success');
         } catch (err) {
           this.showToast('❌ File backup lỗi: ' + err.message, 'error');
         }
