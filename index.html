@@ -383,11 +383,17 @@
         <div class="filter-group">
           <select x-model="filters.className" @change="applyFilters()">
             <option value="all">Tất cả lớp</option>
+            <template x-for="c in (reportClassOptions || [])" :key="c">
+              <option :value="c" x-text="c"></option>
+            </template>
           </select>
         </div>
         <div class="filter-group">
           <select x-model="filters.teacher" @change="applyFilters()">
             <option value="all">Tất cả GV</option>
+            <template x-for="t in (reportTeacherOptions || [])" :key="t">
+              <option :value="t" x-text="t"></option>
+            </template>
           </select>
         </div>
         <div class="filter-group search-group">
@@ -418,6 +424,7 @@
               <th style="padding: 10px 8px;">Nguồn CK</th>
               <th style="padding: 10px 8px;">Trạng thái</th>
               <th style="padding: 10px 8px; min-width: 180px;">Ghi chú</th>
+              <th style="padding: 10px 8px; width: 90px;"></th>
             </tr>
           </thead>
           <tbody>
@@ -452,6 +459,10 @@
                   <span class="status-badge" :class="getStatusBadge(row.trangThai)" x-text="row.trangThai"></span>
                 </td>
                 <td class="wrap" x-text="row.ghiChu" style="font-size: 0.85rem; color: var(--text-secondary); max-width: 250px;"></td>
+                <td style="white-space: nowrap;">
+                  <button class="btn btn-xs btn-outline" title="Thêm gia đình" @click="addFamilyGroupForStudent(row.mshs, row.fullName)">➕</button>
+                  <button class="btn btn-xs btn-outline" title="Tạm ngưng" @click="quickSuspend(row.mshs, row.fullName)">⏸️</button>
+                </td>
               </tr>
             </template>
           </tbody>
@@ -465,6 +476,46 @@
         <button class="btn btn-secondary" @click="exportBackup()">
           💾 Backup
         </button>
+      </div>
+
+      <div class="mt-4">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="margin: 0;">⏸️ Học sinh tạm ngưng tháng này <span class="count-badge" x-text="(suspendedData || []).length"></span></h3>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-warning" @click="suspendUnpaidStudents()" title="Xem danh sách HS chưa đóng và chọn ai cần tạm ngưng">📋 DS Chưa đóng → Tạm ngưng</button>
+            <button class="btn btn-sm btn-primary" @click="suspendStudentUI()" title="Tìm MSHS và tạm ngưng thủ công">➕ Thêm thủ công</button>
+          </div>
+        </div>
+        <p class="text-sm text-secondary mb-2">HS tạm ngưng sẽ KHÔNG hiện trong báo cáo chính và KHÔNG báo "Chưa đóng".</p>
+        <div class="table-container card glass-card">
+          <table>
+            <thead>
+              <tr>
+                <th>MSHS</th>
+                <th>Họ tên</th>
+                <th>Lớp tạm ngưng</th>
+                <th>Tháng</th>
+                <th>Ghi chú</th>
+                <th style="width: 100px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-if="!(suspendedData || []).length">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Không có HS tạm ngưng tháng này</td></tr>
+              </template>
+              <template x-for="s in (suspendedData || [])" :key="s.id">
+                <tr>
+                  <td x-text="s.mshs"></td>
+                  <td x-text="s.studentName"></td>
+                  <td x-text="s.className"></td>
+                  <td x-text="s.monthYear"></td>
+                  <td class="wrap" x-text="s.note"></td>
+                  <td><button class="btn btn-sm btn-primary" @click="unsuspendStudent(s.id)">Bỏ ngưng</button></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -810,6 +861,7 @@
             </table>
           </div>
           <div class="mt-3" style="text-align:right;">
+            <button class="btn btn-sm btn-outline" @click="copyToAccTab7(6)">📥 Copy sang Tổng hợp</button>
             <button class="btn btn-sm btn-primary" @click="exportAccTab(6)">📥 Xuất Excel Tab này</button>
           </div>
         </div>
@@ -1022,6 +1074,45 @@
                     <td style="white-space: nowrap;" x-text="pkg.startMonth"></td>
                     <td style="white-space: nowrap;" x-text="pkg.endMonth"></td>
                     <td><button class="btn btn-sm btn-danger" @click="deletePackage(pkg.packageId)" title="Xóa gói">✕</button></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="margin: 0;">📝 Điều chỉnh học phí <span class="count-badge" x-text="(adjustmentData || []).length"></span></h4>
+            <button class="btn btn-sm btn-primary" @click="addAdjustmentUI()">➕ Thêm điều chỉnh</button>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Giảm HP cho HS đặc biệt: giới thiệu bạn mới (-400k), miễn giảm... Số âm = giảm.</p>
+          <div class="table-container compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>MSHS</th>
+                  <th>Tên HS</th>
+                  <th>Loại</th>
+                  <th>Số tiền</th>
+                  <th>Tháng</th>
+                  <th>Ghi chú</th>
+                  <th style="width: 60px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!(adjustmentData || []).length">
+                  <tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td></tr>
+                </template>
+                <template x-for="a in (adjustmentData || [])" :key="a.id">
+                  <tr>
+                    <td x-text="a.mshs"></td>
+                    <td x-text="a.studentName"></td>
+                    <td x-text="a.type"></td>
+                    <td style="text-align: right; font-weight: 600; white-space: nowrap;" x-text="$formatCurrency(a.amount)"></td>
+                    <td style="white-space: nowrap;" x-text="a.monthYear"></td>
+                    <td class="wrap" x-text="a.note"></td>
+                    <td><button class="btn btn-sm btn-danger" @click="deleteAdjustment(a.id)" title="Xóa">✕</button></td>
                   </tr>
                 </template>
               </tbody>

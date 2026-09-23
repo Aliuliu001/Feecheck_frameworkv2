@@ -87,6 +87,10 @@ function appComponent() {
       teacher: 'all',
       searchText: ''
     },
+    reportClassOptions: [],
+    reportTeacherOptions: [],
+    suspendedData: [],
+    adjustmentData: [],
     filteredReportRows: [],
     
     // Accounting UI
@@ -136,6 +140,7 @@ function appComponent() {
       this.keywordData = [...kw].sort(byDate);
       this.familyGroups = window.Storage.loadFamilyGroups() || [];
       this.packageData = window.Storage.loadPackages() || [];
+      this.adjustmentData = window.Storage.loadFeeAdjustments ? (window.Storage.loadFeeAdjustments() || []) : [];
     },
     
     showToast(message, type = 'info') {
@@ -269,6 +274,8 @@ function appComponent() {
       );
       
       this.filteredReportRows = [...state.reportRows];
+      this.populateReportFilters();
+      this.loadSuspendedUI();
       this.computeAccountingData();
 
       state.matchingDone = true;
@@ -334,7 +341,20 @@ function appComponent() {
 
     applyFilters() {
       const state = this.$store.appState;
-      this.filteredReportRows = window.Reporter.filterReport(state.reportRows, this.filters);
+      // Reporter.filterReport đọc field trangThai — map từ filters.status của UI
+      this.filteredReportRows = window.Reporter.filterReport(state.reportRows, {
+        trangThai: this.filters.status,
+        className: this.filters.className,
+        teacher: this.filters.teacher,
+        searchText: this.filters.searchText
+      });
+    },
+
+    // Nạp danh sách Lớp + GV vào 2 ô lọc (bản cũ có, bản Alpine làm rơi)
+    populateReportFilters() {
+      const state = this.$store.appState;
+      this.reportClassOptions = [...new Set((state.students || []).map(s => s.className).filter(Boolean))].sort();
+      this.reportTeacherOptions = [...new Set((state.students || []).map(s => s.teacher).filter(Boolean))].sort();
     },
 
     exportReport() {
@@ -591,6 +611,120 @@ function appComponent() {
       this.showToast('🗑️ Đã xóa gói', 'success');
     },
 
+    // Thêm điều chỉnh học phí (khôi phục từ bản cũ — VD: giới thiệu bạn mới -400k)
+    addAdjustmentUI() {
+      const state = this.$store.appState;
+      const mshs = prompt('MSHS của HS được điều chỉnh:');
+      if (!mshs) return;
+      const student = (state.students || []).find(s => s.mshs === mshs.trim().toUpperCase());
+      if (!student) { this.showToast(`⚠️ Không tìm thấy MSHS ${mshs} trong DS học sinh`, 'error'); return; }
+      const type = prompt('Loại điều chỉnh (gõ đúng 1 trong 4):\n1. Giới thiệu bạn mới\n2. Tạm ngưng lớp\n3. Hỗ trợ hoàn cảnh\n4. Ưu đãi khác', 'Giới thiệu bạn mới') || 'Ưu đãi khác';
+      const amount = parseInt(prompt('Số tiền (giảm = số âm, VD: -400000):', '-400000') || '0', 10) || 0;
+      if (!amount) { this.showToast('⚠️ Số tiền phải khác 0', 'error'); return; }
+      const adjMonth = (prompt('Tháng áp dụng (YYYY-MM):', state.monthYear) || state.monthYear).trim();
+      if (!/^\d{4}-\d{2}$/.test(adjMonth)) { this.showToast('⚠️ Tháng phải dạng YYYY-MM', 'error'); return; }
+      const note = prompt('Ghi chú (bỏ trống nếu không có):') || '';
+      window.Storage.addFeeAdjustment({ mshs: student.mshs, studentName: student.fullName || '', type: type.trim(), amount, monthYear: adjMonth, note: note.trim() });
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast(`✅ Đã thêm điều chỉnh ${type.trim()} cho ${student.mshs}`, 'success');
+    },
+
+    deleteAdjustment(adjId) {
+      if (!confirm('Xóa điều chỉnh này?')) return;
+      window.Storage.removeFeeAdjustment(adjId);
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast('🗑️ Đã xóa điều chỉnh', 'success');
+    },
+
+    // HS tạm ngưng tháng này: nạp bảng, thêm thủ công, thêm từ DS chưa đóng, bỏ ngưng
+    loadSuspendedUI() {
+      const state = this.$store.appState;
+      this.suspendedData = window.Storage.getSuspendedForMonth ? (window.Storage.getSuspendedForMonth(state.monthYear) || []) : [];
+    },
+
+    suspendStudentUI() {
+      const state = this.$store.appState;
+      const mshs = prompt('MSHS của HS cần tạm ngưng:');
+      if (!mshs) return;
+      const student = (state.students || []).find(s => s.mshs === mshs.trim().toUpperCase());
+      if (!student) { this.showToast(`⚠️ Không tìm thấy MSHS ${mshs} trong DS học sinh`, 'error'); return; }
+      const classes = (student.className || '').split(',').map(c => c.trim()).filter(Boolean);
+      const className = classes.length > 1 ? (prompt(`HS học ${classes.length} lớp. Tạm ngưng lớp nào? (${classes.join(' / ')})`, classes[0]) || '').trim() : (classes[0] || '');
+      if (!className) { this.showToast('⚠️ Chưa chọn lớp', 'warning'); return; }
+      const note = prompt('Lý do (bỏ trống nếu không có):') || '';
+      const result = window.Storage.addSuspended({ mshs: student.mshs, studentName: student.fullName || '', className, monthYear: state.monthYear, note: note.trim() });
+      if (result && result.error) { this.showToast(result.error, 'error'); return; }
+      this.loadSuspendedUI();
+      this.runMatching();
+      this.showToast(`⏸️ Đã tạm ngưng ${student.mshs} - lớp ${className}`, 'success');
+    },
+
+    suspendUnpaidStudents() {
+      const state = this.$store.appState;
+      const suspended = window.Storage.getSuspendedForMonth ? (window.Storage.getSuspendedForMonth(state.monthYear) || []) : [];
+      const susSet = new Set(suspended.map(s => `${s.mshs}_${s.className}`));
+      const unpaid = (state.reportRows || []).filter(r => {
+        if (r.trangThai !== 'Chưa đóng') return false;
+        const classes = (r.className || '').split(',').map(c => c.trim()).filter(Boolean);
+        return classes.some(c => !susSet.has(`${r.mshs}_${c}`));
+      });
+      if (!unpaid.length) { this.showToast('Không có HS "Chưa đóng" nào cần tạm ngưng', 'info'); return; }
+      const list = unpaid.map(r => `${r.mshs} (${r.fullName})`).join('\n');
+      if (!confirm(`Tạm ngưng ${unpaid.length} HS chưa đóng tháng ${state.monthYear}?\n\n${list.slice(0, 800)}${list.length > 800 ? '\n...' : ''}`)) return;
+      let count = 0;
+      unpaid.forEach(r => {
+        const classes = (r.className || '').split(',').map(c => c.trim()).filter(Boolean);
+        classes.forEach(c => {
+          if (susSet.has(`${r.mshs}_${c}`)) return;
+          const res = window.Storage.addSuspended({ mshs: r.mshs, studentName: r.fullName || '', className: c, monthYear: state.monthYear, note: `Chưa đóng HP — tháng ${state.monthYear}` });
+          if (res && !res.error) { count++; susSet.add(`${r.mshs}_${c}`); }
+        });
+      });
+      this.loadSuspendedUI();
+      this.runMatching();
+      this.showToast(`⏸️ Đã tạm ngưng ${count} lượt lớp`, 'success');
+    },
+
+    unsuspendStudent(susId) {
+      window.Storage.removeSuspended(susId);
+      this.loadSuspendedUI();
+      this.runMatching();
+      this.showToast('▶️ Đã bỏ tạm ngưng', 'success');
+    },
+
+    quickSuspend(mshs, fullName) {
+      const state = this.$store.appState;
+      const student = (state.students || []).find(s => s.mshs === mshs);
+      const classes = ((student && student.className) || '').split(',').map(c => c.trim()).filter(Boolean);
+      const suspended = window.Storage.getSuspendedForMonth ? (window.Storage.getSuspendedForMonth(state.monthYear) || []) : [];
+      const susSet = new Set(suspended.filter(s => s.mshs === mshs).map(s => s.className));
+      const available = classes.filter(c => !susSet.has(c));
+      if (!available.length) { this.showToast(`${fullName} đã tạm ngưng tất cả lớp tháng này`, 'warning'); return; }
+      const className = available.length > 1 ? (prompt(`Tạm ngưng lớp nào của ${fullName}? (${available.join(' / ')})`, available[0]) || '').trim() : available[0];
+      if (!className) return;
+      const note = prompt('Lý do (bỏ trống nếu không có):') || '';
+      const result = window.Storage.addSuspended({ mshs, studentName: fullName || '', className, monthYear: state.monthYear, note: note.trim() });
+      if (result && result.error) { this.showToast(result.error, 'error'); return; }
+      this.loadSuspendedUI();
+      this.runMatching();
+      this.showToast(`⏸️ Đã tạm ngưng ${fullName} - lớp ${className}`, 'success');
+    },
+
+    addFamilyGroupForStudent(mshs, fullName) {
+      const membersRaw = prompt(`Thêm nhóm gia đình cho ${fullName} (${mshs}).\nNhập MSHS các con còn lại, cách nhau dấu phẩy:`);
+      if (!membersRaw) return;
+      const members = [mshs.trim().toUpperCase(), ...membersRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)];
+      const uniq = [...new Set(members)];
+      if (uniq.length < 2) { this.showToast('⚠️ Nhóm gia đình cần ít nhất 2 MSHS', 'error'); return; }
+      const groupName = prompt('Tên nhóm (gợi nhớ, VD: Nhà Cô Lan):', `Nhóm ${uniq.join(', ')}`) || '';
+      window.Storage.addFamilyGroup({ groupName: groupName.trim() || ('Nhóm ' + uniq.join(',')), stkDaiDien: uniq[0], tenPH: '', members: uniq });
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast('✅ Đã thêm nhóm gia đình', 'success');
+    },
+
     // Accounting Actions
     copyToAccTab7(tabNum) {
       const state = this.$store.appState;
@@ -631,8 +765,20 @@ function appComponent() {
       return Object.keys(this.tab4Choice).length === data.length;
     },
     confirmTab4Split() {
-       this.showToast('✅ Đã phân loại thành công!', 'success');
-       // Real app logic would handle the split here
+      const state = this.$store.appState;
+      const nghiRows = (state.accountingData.tab4 || []).filter(r => this.tab4Choice[r.mshs] === 'stop' || this.tab4Choice[r.mshs] === 'nghi');
+      const vanhocRows = (state.accountingData.tab4 || []).filter(r => this.tab4Choice[r.mshs] === 'continue' || this.tab4Choice[r.mshs] === 'vanhoc');
+      // HS chọn "Vẫn học" → chuyển sang Tab 3 Giảm bớt để nhắc nợ
+      if (vanhocRows.length) {
+        const existing = new Set((state.accountingData.tab3 || []).map(r => r.mshs));
+        vanhocRows.forEach(r => { if (!existing.has(r.mshs)) { state.accountingData.tab3.push({ ...r }); existing.add(r.mshs); } });
+        state.accountingData.tab3.sort((a, b) => String(a.mshs).localeCompare(String(b.mshs)));
+      }
+      // Tab 4 chỉ giữ HS "Nghỉ"
+      const moved = new Set(vanhocRows.map(r => r.mshs));
+      state.accountingData.tab4 = (state.accountingData.tab4 || []).filter(r => !moved.has(r.mshs));
+      vanhocRows.forEach(r => { delete this.tab4Choice[r.mshs]; });
+      this.showToast(`✅ Đã phân loại: ${nghiRows.length} nghỉ, ${vanhocRows.length} chuyển sang Giảm bớt`, 'success');
     },
 
     // Settings
