@@ -256,6 +256,49 @@ window.Utils = {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   },
 
+  // Họ phổ biến — bỏ qua khi tìm "phần tên đặc trưng" (tránh nhận nhầm: NGUYEN có ở khắp nơi)
+  commonSurnames: function() {
+    return ['nguyen', 'tran', 'le', 'pham', 'hoang', 'huynh', 'phan', 'vu', 'vo', 'dang', 'bui', 'do', 'ho', 'ngo', 'duong', 'ly', 'cao', 'truong', 'dinh', 'vo'];
+  },
+
+  // Bỏ mốc tháng khỏi nội dung (T8/T9/thang 8...) — tháng nào cũng khớp được
+  stripMonthMarkers: function(text) {
+    if (!text) return '';
+    return text
+      .toString()
+      .replace(/\bt\s?\d{1,2}\b/gi, ' ')
+      .replace(/\bthang\s?\d{1,2}\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
+
+  // So khớp từ khóa "lỏng": cùng 1 cháu viết dính hay rời, thiếu/thừa chữ vẫn nhận ra
+  // VD: từ khóa DPBAOCHAU vẫn khớp nội dung DOPHUCBAOCHAU T9 (chung phần BAOCHAU)
+  looseKeywordHit: function(normKw, normDesc) {
+    if (!normKw || !normDesc) return false;
+    if (normDesc.includes(normKw)) return true;
+    const kwWords = normKw.split(' ').filter(w => w.length > 2);
+    if (kwWords.length > 1 && kwWords.every(w => normDesc.includes(w))) return true;
+    // So không dấu cách: "bao chau" khớp "baochau"
+    const kwFlat = normKw.replace(/\s+/g, '');
+    const descFlat = normDesc.replace(/\s+/g, '');
+    if (kwFlat.length >= 4 && descFlat.includes(kwFlat)) return true;
+    if (descFlat.length >= 4 && kwFlat.includes(descFlat)) return true;
+    // Chung đoạn dài đặc trưng (>=6 ký tự, không phải họ phổ biến): "dpbaochau" & "dophucbaochau" chung "baochau"
+    const surnames = this.commonSurnames();
+    const minLen = 6;
+    if (kwFlat.length >= minLen) {
+      for (let i = 0; i + minLen <= kwFlat.length; i++) {
+        for (let l = Math.min(12, kwFlat.length - i); l >= minLen; l--) {
+          const sub = kwFlat.substring(i, i + l);
+          if (surnames.includes(sub)) continue;
+          if (descFlat.includes(sub)) return true;
+        }
+      }
+    }
+    return false;
+  },
+
   // Trích xuất từ khóa tiềm năng từ nội dung chuyển khoản
   extractKeywordsFromDescription: function(desc) {
     if (!desc) return [];

@@ -142,15 +142,16 @@ window.Matcher = {
       // ✅ FIX: TPBank import dùng field description/amount — đồng bộ về explanation/credit để matcher đọc đúng
       if (tx.description && !tx.explanation) tx.explanation = tx.description;
       if ((tx.amount || 0) > 0 && !(tx.credit > 0)) tx.credit = tx.amount;
-      const normDesc = Utils.normalizeText(tx.explanation || '');
+      const rawDesc = Utils.normalizeText(tx.explanation || '');
+      // Bỏ mốc tháng (T8/T9...) rồi mới so — tháng nào cũng khớp được
+      const normDesc = Utils.normalizeText(Utils.stripMonthMarkers ? Utils.stripMonthMarkers(rawDesc) : rawDesc);
+      const descFlat = normDesc.replace(/\s+/g, '');
       let found = false;
 
       for (const normKw of sortedKw) {
-        // Khớp khi: chứa nguyên cụm HOẶC chứa đủ từng từ (phòng từ khóa nhiều từ bị ngắt quãng trong nội dung)
-        const kwWords = normKw.split(' ').filter(w => w.length > 2);
-        const hitPhrase = normKw && normDesc.includes(normKw);
-        const hitAllWords = kwWords.length > 1 && kwWords.every(w => normDesc.includes(w));
-        if (hitPhrase || hitAllWords) {
+        // So khớp lỏng: dính/rời/thiếu/thừa chữ, khác tháng vẫn nhận ra cùng 1 cháu
+        const hit = Utils.looseKeywordHit ? Utils.looseKeywordHit(normKw, normDesc) : (normKw && normDesc.includes(normKw));
+        if (hit) {
           console.log(`[MATCH] "${normKw}" found in "${normDesc}"`);
           const members = kwGroups.get(normKw);
           tx.matchSource = 'keyword';
