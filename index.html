@@ -220,7 +220,7 @@
           </h3>
           <button class="btn btn-sm btn-outline" x-show="lastIgnored" @click="undoIgnore()">↩️ Hoàn tác bỏ qua</button>
         </div>
-        <div class="table-container">
+        <div class="table-container exception-table">
           <table>
             <thead>
               <tr>
@@ -266,11 +266,11 @@
                   x-text="$store.appState.tpbUnmatched?.length || 0"></span>
           </h3>
         </div>
-        <div class="table-container">
+        <div class="table-container exception-table">
           <table>
             <thead>
               <tr>
-                <th>Ngày</th>
+                <th>Ngày GD</th>
                 <th>Nội dung</th>
                 <th>Số tiền</th>
                 <th>Gợi ý MSHS</th>
@@ -545,7 +545,7 @@
         <div class="card glass-card mt-4">
           <h3>📋 DS HĐ Tháng trước</h3>
           <p class="text-sm text-secondary mb-2">Danh sách gốc từ File Kế toán tháng trước. Đây là nguồn gốc, tất cả HS tháng trước.</p>
-          <div class="table-container">
+          <div class="table-container exception-table">
             <table>
               <thead>
                 <tr>
@@ -592,7 +592,7 @@
         <div class="card glass-card mt-4">
           <h3>🏦 DS CK VTB Tháng này</h3>
           <p class="text-sm text-secondary mb-2">Học sinh đã chuyển khoản vào TK Công ty VietinBank tháng này.</p>
-          <div class="table-container">
+          <div class="table-container exception-table">
             <table>
               <thead>
                 <tr>
@@ -633,7 +633,7 @@
         <div class="card glass-card mt-4">
           <h3>📉 Giảm bớt</h3>
           <p class="text-sm text-secondary mb-2">Tháng trước có, tháng này chưa CK. Vẫn còn trong DS Tổng và HP &gt; 0 → cần nhắc/nhắc nợ.</p>
-          <div class="table-container">
+          <div class="table-container exception-table">
             <table>
               <thead>
                 <tr>
@@ -674,7 +674,7 @@
         <div class="card glass-card mt-4">
           <h3>🛑 Stop - nghỉ học</h3>
           <p class="text-sm text-secondary mb-2">Trong danh sách giảm bớt mà KHÔNG còn trong DS Tổng, hoặc HP = 0.</p>
-          <div class="table-container">
+          <div class="table-container exception-table">
             <table>
               <thead>
                 <tr>
@@ -726,7 +726,7 @@
         <div class="card glass-card mt-4">
           <h3>📈 Tăng mới — Tháng này mới CK VTB</h3>
           <p class="text-sm text-secondary mb-2">Học sinh CK VTB tháng này nhưng KHÔNG có trong DS HĐ tháng trước →HS mới.</p>
-          <div class="table-container">
+          <div class="table-container exception-table">
             <table>
               <thead>
                 <tr>
@@ -767,7 +767,7 @@
         <div class="card glass-card mt-4">
           <h3>⚠️ Chuyển tiền sai</h3>
           <p class="text-sm text-secondary mb-2">Thuật toán "Dò và chia tiền" — mỗi gia đình 1 dòng.</p>
-          <div class="table-container">
+          <div class="table-container exception-table">
             <table>
               <thead>
                 <tr>
@@ -809,7 +809,7 @@
         <div class="card glass-card mt-4">
           <h3>📋 Tổng hợp — Tập hợp dữ liệu từ các tab</h3>
           <p class="text-sm text-secondary mb-2">Bấm "📥 Copy sang Tổng hợp" ở bất kỳ tab nào để đưa dữ liệu vào đây.</p>
-          <div class="table-container">
+          <div class="table-container exception-table">
             <table>
               <thead>
                 <tr>
@@ -877,16 +877,17 @@
             <table>
               <thead>
                 <tr>
-                  <th style="width: 25%;">MSHS</th>
-                  <th style="width: 30%;">STK</th>
+                  <th style="width: 18%;">MSHS</th>
+                  <th style="width: 24%;">STK</th>
                   <th>Tên TK</th>
+                  <th style="width: 15%;">Ngày gán</th>
                   <th style="width: 60px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="stkPhuData.length === 0">
                   <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
                   </tr>
                 </template>
                 <template x-for="item in stkPhuData.filter(s => !stkPhuSearch || (s.mshs + s.stk + s.tenTK).toLowerCase().includes(stkPhuSearch.toLowerCase()))" :key="item.stk">
@@ -894,6 +895,7 @@
                     <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="item.mshs"></span></td>
                     <td style="font-family: monospace; font-weight: 600;" x-text="item.stk"></td>
                     <td x-text="item.tenTK"></td>
+                    <td style="font-size: 13px; white-space: nowrap;" x-text="$formatDate(item.addedDate)"></td>
                     <td><button class="btn btn-sm btn-danger" @click="deleteStkMapping(item.stk)" title="Xóa mapping sai">✕</button></td>
                   </tr>
                 </template>
@@ -911,16 +913,17 @@
             <table>
               <thead>
                 <tr>
-                  <th style="width: 30%;">Từ khóa</th>
-                  <th style="width: 25%;">MSHS</th>
+                  <th style="width: 25%;">Từ khóa</th>
+                  <th style="width: 20%;">MSHS</th>
                   <th>Tên HS</th>
+                  <th style="width: 15%;">Ngày gán</th>
                   <th style="width: 60px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="keywordData.length === 0">
                   <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Chưa có dữ liệu</td>
                   </tr>
                 </template>
                 <template x-for="item in keywordData.filter(k => !keywordSearch || (k.keyword + k.mshs + k.tenHS).toLowerCase().includes(keywordSearch.toLowerCase()))" :key="item.keyword">
@@ -928,6 +931,7 @@
                     <td><span class="tag-tpb" x-text="item.keyword"></span></td>
                     <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="item.mshs"></span></td>
                     <td x-text="item.tenHS"></td>
+                    <td style="font-size: 13px; white-space: nowrap;" x-text="$formatDate(item.addedDate)"></td>
                     <td><button class="btn btn-sm btn-danger" @click="deleteKeywordMapping(item.keyword)" title="Xóa keyword sai">✕</button></td>
                   </tr>
                 </template>
@@ -969,9 +973,14 @@
         </div>
 
         <div class="mt-4">
-          <h3>Backup & Khôi phục</h3>
-          <div class="btn-group-vertical">
-            <button class="btn btn-outline" @click="exportBackup()">Xuất backup toàn bộ (JSON)</button>
+          <h3>💾 Backup & Khôi phục</h3>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">⚠️ Dữ liệu gán MSHS lưu trong trình duyệt (máy này). Refresh/Ctrl+Shift+R <strong>không mất</strong>, nhưng đổi máy / xóa cache sẽ mất. Nên tải backup sau mỗi lần gán xong.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-outline" @click="exportBackup()">💾 Tải backup toàn bộ (JSON)</button>
+            <label class="btn btn-primary" style="cursor: pointer;">
+              📂 Khôi phục từ file backup
+              <input type="file" accept=".json" @change="importBackup($event)" style="display: none;">
+            </label>
           </div>
         </div>
       </div>

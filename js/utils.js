@@ -72,11 +72,20 @@ window.Utils = {
 
   // Định dạng ngày thành DD/MM/YYYY
   formatDate: function(dateStr) {
-    if (!dateStr) return '';
+    if (!dateStr && dateStr !== 0) return '';
     try {
+      // Excel serial number (VD: 45879 = ngày trong Excel) → đổi sang ngày thật
+      if (typeof dateStr === 'number' && dateStr > 20000 && dateStr < 80000) {
+        const excelEpoch = new Date(1899, 11, 30);
+        const dateObj = new Date(excelEpoch.getTime() + dateStr * 86400000);
+        const d = dateObj.getDate().toString().padStart(2, '0');
+        const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+        const y = dateObj.getFullYear();
+        return `${d}/${m}/${y}`;
+      }
       let dateObj;
       if (typeof dateStr === 'string') {
-        const parts = dateStr.split(/[-\/ ]/);
+        const parts = dateStr.split(/[-\\/ ]/);
         if (parts.length >= 3) {
           if (parts[2].length === 4) { // DD/MM/YYYY
             dateObj = new Date(parts[2], parts[1] - 1, parts[0]);

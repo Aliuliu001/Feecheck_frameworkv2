@@ -60,7 +60,11 @@ document.addEventListener('alpine:init', () => {
   Alpine.magic('formatDate', () => {
     return (dateStr) => {
       if (!dateStr) return '';
+      try {
+        if (window.Utils && window.Utils.formatDate) return window.Utils.formatDate(dateStr);
+      } catch (e) { /* fallback */ }
       const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
       return date.toLocaleDateString('vi-VN');
     };
   });
@@ -123,8 +127,12 @@ function appComponent() {
     },
 
     loadSettingsUI() {
-      this.stkPhuData = window.Storage.loadSTKPhu() || [];
-      this.keywordData = window.Storage.loadKeywords() || [];
+      const stk = window.Storage.loadSTKPhu() || [];
+      const kw = window.Storage.loadKeywords() || [];
+      // Mới gán nhất lên đầu → dễ phát hiện gán nhầm mấy ngày gần đây
+      const byDate = (a, b) => new Date(b.addedDate || 0) - new Date(a.addedDate || 0);
+      this.stkPhuData = [...stk].sort(byDate);
+      this.keywordData = [...kw].sort(byDate);
       this.familyGroups = window.Storage.loadFamilyGroups() || [];
     },
     
@@ -262,7 +270,7 @@ function appComponent() {
       this.computeAccountingData();
       
       state.matchingDone = true;
-      state.exceptionCount = (vtbResult.unmatched?.length || 0) + (tpbResult.unmatched?.length || 0);
+      state.exceptionCount = (state.vtbUnmatched?.length || 0) + (state.tpbUnmatched?.length || 0);
     },
 
     computeAccountingData() {
@@ -579,7 +587,19 @@ function appComponent() {
     },
 
     exportBackup() {
-      const backup = window.Storage.exportFullBackup();
+      // Backup TẤT CẢ dữ liệu quan trọng: mapping + Bỏ qua + gia đình + gói + tạm ngưng
+      const backup = {
+        version: 1,
+        exportDate: new Date().toISOString(),
+        joy_stk_phu: window.Storage.loadSTKPhu(),
+        joy_keywords: window.Storage.loadKeywords(),
+        joy_family_groups: window.Storage.loadFamilyGroups(),
+        joy_ignored_tx: window.Storage._get('joy_ignored_tx', []),
+        joy_packages: window.Storage._get('joy_packages', []),
+        joy_suspended: window.Storage._get('joy_suspended', []),
+        joy_fee_adjustments: window.Storage._get('joy_fee_adjustments', []),
+        joy_referrals: window.Storage._get('joy_referrals', [])
+      };
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -587,7 +607,40 @@ function appComponent() {
       a.download = `joy_backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 100);
-      this.showToast('✅ Đã tải backup', 'success');
+      this.showToast('✅ Đã tải backup (gồm mapping + Bỏ qua + gia đình...)', 'success');
+    },
+
+    importBackup(event) {
+      const file = event.target ? event.target.files[0] : null;
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.joy_stk_phu) window.Storage.saveSTKPhu(data.joy_stk_phu);
+          if (data.joy_keywords) window.Storage.saveKeywords(data.joy_keywords);
+          if (data.joy_family_groups) window.Storage.saveFamilyGroups(data.joy_family_groups);
+          if (data.joy_ignored_tx) { window.Storage._set('joy_ignored_tx', data.joy_ignored_tx); this.ignoredKeys = data.joy_ignored_tx; }
+          if (data.joy_packages) window.Storage._set('joy_packages', data.joy_packages);
+          if (data.joy_suspended) window.Storage._set('joy_suspended', data.joy_suspended);
+          if (data.joy_fee_adjustments) window.Storage._set('joy_fee_adjustments', data.joy_fee_adjustments);
+          if (data.joy_referrals) window.Storage._set('joy_referrals', data.joy_referrals);
+          // Tương thích file mapping cũ (chỉ có 3 key)
+          if (data.joy_mappings || data.mappings) {
+            const m = data.joy_mappings || data.mappings;
+            if (m.joy_stk_phu) window.Storage.saveSTKPhu(m.joy_stk_phu);
+            if (m.joy_keywords) window.Storage.saveKeywords(m.joy_keywords);
+            if (m.joy_family_groups) window.Storage.saveFamilyGroups(m.joy_family_groups);
+          }
+          this.loadSettingsUI();
+          this.runMatching();
+          this.showToast('✅ Đã khôi phục backup! Đang chạy lại đối soát...', 'success');
+        } catch (err) {
+          this.showToast('❌ File backup lỗi: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = null;
     }
   };
 }
