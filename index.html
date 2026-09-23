@@ -220,7 +220,7 @@
           </h3>
           <button class="btn btn-sm btn-outline" x-show="lastIgnored" @click="undoIgnore()">↩️ Hoàn tác bỏ qua</button>
         </div>
-        <div class="table-container exception-table">
+        <div class="table-container">
           <table>
             <thead>
               <tr>
@@ -266,7 +266,7 @@
                   x-text="$store.appState.tpbUnmatched?.length || 0"></span>
           </h3>
         </div>
-        <div class="table-container exception-table">
+        <div class="table-container">
           <table>
             <thead>
               <tr>
@@ -545,7 +545,7 @@
         <div class="card glass-card mt-4">
           <h3>📋 DS HĐ Tháng trước</h3>
           <p class="text-sm text-secondary mb-2">Danh sách gốc từ File Kế toán tháng trước. Đây là nguồn gốc, tất cả HS tháng trước.</p>
-          <div class="table-container exception-table">
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -592,7 +592,7 @@
         <div class="card glass-card mt-4">
           <h3>🏦 DS CK VTB Tháng này</h3>
           <p class="text-sm text-secondary mb-2">Học sinh đã chuyển khoản vào TK Công ty VietinBank tháng này.</p>
-          <div class="table-container exception-table">
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -633,7 +633,7 @@
         <div class="card glass-card mt-4">
           <h3>📉 Giảm bớt</h3>
           <p class="text-sm text-secondary mb-2">Tháng trước có, tháng này chưa CK. Vẫn còn trong DS Tổng và HP &gt; 0 → cần nhắc/nhắc nợ.</p>
-          <div class="table-container exception-table">
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -674,7 +674,7 @@
         <div class="card glass-card mt-4">
           <h3>🛑 Stop - nghỉ học</h3>
           <p class="text-sm text-secondary mb-2">Trong danh sách giảm bớt mà KHÔNG còn trong DS Tổng, hoặc HP = 0.</p>
-          <div class="table-container exception-table">
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -726,7 +726,7 @@
         <div class="card glass-card mt-4">
           <h3>📈 Tăng mới — Tháng này mới CK VTB</h3>
           <p class="text-sm text-secondary mb-2">Học sinh CK VTB tháng này nhưng KHÔNG có trong DS HĐ tháng trước →HS mới.</p>
-          <div class="table-container exception-table">
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -767,7 +767,7 @@
         <div class="card glass-card mt-4">
           <h3>⚠️ Chuyển tiền sai</h3>
           <p class="text-sm text-secondary mb-2">Thuật toán "Dò và chia tiền" — mỗi gia đình 1 dòng.</p>
-          <div class="table-container exception-table">
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -809,7 +809,7 @@
         <div class="card glass-card mt-4">
           <h3>📋 Tổng hợp — Tập hợp dữ liệu từ các tab</h3>
           <p class="text-sm text-secondary mb-2">Bấm "📥 Copy sang Tổng hợp" ở bất kỳ tab nào để đưa dữ liệu vào đây.</p>
-          <div class="table-container exception-table">
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
