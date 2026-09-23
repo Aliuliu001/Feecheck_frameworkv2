@@ -200,20 +200,57 @@ window.Storage = {
   },
   // Kiểm tra MSHS có đang trong gói đóng tiền không
   isPackageActive: function(mshs, monthYear) {
+    const info = this.getPackageStatus(mshs, monthYear);
+    return info.active ? { active: true, expiring: !!info.expiring, packageName: info.pkg.packageName || info.pkg.groupName, startMonth: info.pkg.startMonth, endMonth: info.pkg.endMonth || '', discountPercent: info.pkg.discountPercent || 0 } : { active: false };
+  },
+  // Trạng thái gói của 1 HS so với tháng đối soát: active | expiring (hết đúng tháng này) | expired (đã hết từ trước) | upcoming
+  getPackageStatus: function(mshs, monthYear) {
     const packages = this.loadPackages();
+    if (!mshs || !monthYear) return { status: 'none' };
+    const ms = mshs.toUpperCase();
+    const [cy, cm] = String(monthYear).split('-').map(Number);
+    if (!cy || !cm) return { status: 'none' };
+    const cur = cy * 12 + cm;
     for (const pkg of packages) {
-      if (!pkg.members || !pkg.members.includes(mshs.toUpperCase())) continue;
-      // monthYear format: "2026-08"
-      const [pkgYear, pkgMonth] = pkg.startMonth.split('-').map(Number);
-      const [curYear, curMonth] = monthYear.split('-').map(Number);
-      const pkgStart = pkgYear * 12 + pkgMonth;
-      const pkgEnd = pkgStart + (pkg.months || 1) - 1;
-      const cur = curYear * 12 + curMonth;
-      if (cur >= pkgStart && cur <= pkgEnd) {
-        return { active: true, packageName: pkg.packageName || pkg.groupName, startMonth: pkg.startMonth, endMonth: pkg.endMonth || '', discountPercent: pkg.discountPercent || 0 };
+      if (!pkg.members || !pkg.members.map(m => String(m).toUpperCase()).includes(ms)) continue;
+      if (!pkg.startMonth) continue;
+      const [py, pm] = String(pkg.startMonth).split('-').map(Number);
+      if (!py || !pm) continue;
+      const start = py * 12 + pm;
+      const end = start + (pkg.months || 1) - 1;
+      if (cur >= start && cur <= end) {
+        const last = (end === cur);
+        // Tháng cuối vẫn tính đã đóng, kèm cờ expiring để báo nhắc thu tháng sau
+        return { status: last ? 'expiring' : 'active', active: true, expiring: last, pkg, endMonthIdx: end };
       }
+      if (cur === end + 1) return { status: 'expired', active: false, justExpired: true, pkg, endMonthIdx: end };
+      if (cur > end + 1) return { status: 'expired', active: false, justExpired: false, pkg, endMonthIdx: end };
     }
-    return { active: false };
+    return { status: 'none' };
+  },
+  // Quét TẤT CẢ gói: gói nào hết đúng tháng đối soát / vừa hết tháng trước → nhắc thu HP tháng sau
+  getExpiringPackages: function(monthYear, students) {
+    const packages = this.loadPackages();
+    if (!monthYear) return [];
+    const [cy, cm] = String(monthYear).split('-').map(Number);
+    const cur = cy * 12 + cm;
+    const nameMap = {};
+    (students || []).forEach(s => { if (s.mshs) nameMap[String(s.mshs).toUpperCase()] = s.fullName || ''; });
+    const out = [];
+    (packages || []).forEach(pkg => {
+      if (!pkg.startMonth) return;
+      const [py, pm] = String(pkg.startMonth).split('-').map(Number);
+      if (!py || !pm) return;
+      const end = (py * 12 + pm) + (pkg.months || 1) - 1;
+      const ey = Math.floor((end - 1) / 12), em = ((end - 1) % 12) + 1;
+      const endStr = `${ey}-${String(em).padStart(2, '0')}`;
+      const ny = Math.floor(end / 12), nm = (end % 12) + 1;
+      const nextStr = `${ny}-${String(nm).padStart(2, '0')}`;
+      const members = (pkg.members || []).map(m => `${m}${nameMap[String(m).toUpperCase()] ? ' (' + nameMap[String(m).toUpperCase()] + ')' : ''}`);
+      if (end === cur) out.push({ pkg, kind: 'expiring', msg: `hết đúng tháng này (${endStr}) → tháng ${nextStr} thu HP bình thường`, members });
+      else if (end === cur - 1) out.push({ pkg, kind: 'expired', msg: `đã hết từ ${endStr} → tháng này (${monthYear}) thu HP bình thường`, members });
+    });
+    return out;
   },
 
   // DỮ LIỆU THÁNG TRƯỚC

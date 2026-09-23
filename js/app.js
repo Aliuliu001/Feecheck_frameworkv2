@@ -270,9 +270,19 @@ function appComponent() {
       
       this.filteredReportRows = [...state.reportRows];
       this.computeAccountingData();
-      
+
       state.matchingDone = true;
       state.exceptionCount = (state.vtbUnmatched?.length || 0) + (state.tpbUnmatched?.length || 0);
+
+      // Nhắc gói sắp hết / vừa hết hạn (VD: gói 7,8,9 → đối soát tháng 9 báo để tháng 10 thu HP)
+      try {
+        const exp = window.Storage.getExpiringPackages ? window.Storage.getExpiringPackages(state.monthYear, state.students) : [];
+        state.packageAlerts = exp;
+        if (exp && exp.length) {
+          const lines = exp.map(e => `• ${(e.pkg.packageName || e.pkg.groupName || 'Gói')} (${(e.pkg.members || []).join(', ')}) ${e.msg}`).join('\n');
+          setTimeout(() => this.showToast(`⏰ Gói hết hạn:\n${lines}`, 'warning'), 600);
+        }
+      } catch (e) { console.error('package alert error:', e); }
     },
 
     computeAccountingData() {

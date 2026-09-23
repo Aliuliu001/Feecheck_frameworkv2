@@ -163,6 +163,7 @@ window.Reporter = {
         const discountPercent = packageInfo.discountPercent || 0;
         const discountAmount = Math.floor(tongHocPhi * discountPercent / 100);
         notes.push(`📦 Đã đóng gói: ${packageInfo.packageName} (${packageInfo.startMonth} → ${packageInfo.endMonth})${discountPercent > 0 ? ` — Giảm ${discountPercent}% (${Utils.formatCurrency(discountAmount)}/tháng)` : ''}`);
+        if (packageInfo.expiring) notes.push(`⏰ Gói hết đúng tháng này → tháng sau thu HP bình thường`);
       }
 
       // 0.5. Điều chỉnh học phí
