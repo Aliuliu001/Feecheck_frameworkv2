@@ -941,7 +941,10 @@
         </div>
 
         <div class="settings-section">
-          <h4>👨‍👩‍👧 Nhóm Gia đình <span class="count-badge" x-text="familyGroups.length"></span></h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="margin: 0;">👨‍👩‍👧 Nhóm Gia đình <span class="count-badge" x-text="familyGroups.length"></span></h4>
+            <button class="btn btn-sm btn-primary" @click="addFamilyGroupUI()">➕ Thêm nhóm</button>
+          </div>
           <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Dùng khi 1 phụ huynh đóng tiền cho nhiều con.</p>
           <div class="table-container compact-table">
             <table>
@@ -951,20 +954,63 @@
                   <th>STK Đại diện</th>
                   <th>Tên PH</th>
                   <th>Thành viên (MSHS)</th>
+                  <th style="width: 60px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <template x-if="familyGroups.length === 0">
                   <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
                   </tr>
                 </template>
-                <template x-for="group in familyGroups" :key="group.stk">
+                <template x-for="group in familyGroups" :key="group.groupId || group.stk">
                   <tr>
-                    <td x-text="group.name"></td>
-                    <td x-text="group.stk"></td>
-                    <td x-text="group.parentName"></td>
+                    <td x-text="group.groupName || group.name"></td>
+                    <td x-text="group.stkDaiDien || group.stk"></td>
+                    <td x-text="group.tenPH || group.parentName"></td>
                     <td x-text="group.members?.join(', ')"></td>
+                    <td><button class="btn btn-sm btn-danger" @click="deleteFamilyGroup(group.groupId)" title="Xóa nhóm">✕</button></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="margin: 0;">📦 Đóng gói học phí (nhiều tháng) <span class="count-badge" x-text="(packageData || []).length"></span></h4>
+            <button class="btn btn-sm btn-primary" @click="addPackageUI()">➕ Thêm gói</button>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Ghi nhận khi phụ huynh đóng trước nhiều tháng. Hệ thống tự ghi nhận bé đã đóng cho các tháng trong gói, không báo "chưa đóng".</p>
+          <div class="table-container compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tên gói</th>
+                  <th>Thành viên (MSHS)</th>
+                  <th>Số tháng</th>
+                  <th>Giảm %</th>
+                  <th>Từ tháng</th>
+                  <th>Đến tháng</th>
+                  <th style="width: 60px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!(packageData || []).length">
+                  <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                  </tr>
+                </template>
+                <template x-for="pkg in (packageData || [])" :key="pkg.packageId">
+                  <tr>
+                    <td x-text="pkg.packageName || pkg.groupName"></td>
+                    <td x-text="pkg.members?.join(', ')"></td>
+                    <td style="text-align: center;" x-text="pkg.months"></td>
+                    <td style="text-align: center;" x-text="pkg.discountPercent"></td>
+                    <td style="white-space: nowrap;" x-text="pkg.startMonth"></td>
+                    <td style="white-space: nowrap;" x-text="pkg.endMonth"></td>
+                    <td><button class="btn btn-sm btn-danger" @click="deletePackage(pkg.packageId)" title="Xóa gói">✕</button></td>
                   </tr>
                 </template>
               </tbody>

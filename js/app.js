@@ -97,6 +97,7 @@ function appComponent() {
     stkPhuData: [],
     keywordData: [],
     familyGroups: [],
+    packageData: [],
     stkPhuSearch: '',
     keywordSearch: '',
     // Drag states
@@ -134,6 +135,7 @@ function appComponent() {
       this.stkPhuData = [...stk].sort(byDate);
       this.keywordData = [...kw].sort(byDate);
       this.familyGroups = window.Storage.loadFamilyGroups() || [];
+      this.packageData = window.Storage.loadPackages() || [];
     },
     
     showToast(message, type = 'info') {
@@ -522,6 +524,61 @@ function appComponent() {
       this.loadSettingsUI();
       this.showToast('🗑️ Đã xóa keyword', 'success');
       this.runMatching();
+    },
+
+    // Thêm nhóm Gia đình (khôi phục từ bản cũ — bản Alpine viết lại làm rơi mất)
+    addFamilyGroupUI() {
+      const name = prompt('Tên nhóm (gợi nhớ, VD: Nhà Cô Lan):');
+      if (name === null) return;
+      const membersRaw = prompt('Danh sách MSHS các con, cách nhau dấu phẩy (VD: HV011, HV012):');
+      if (!membersRaw) { this.showToast('⚠️ Chưa nhập MSHS', 'warning'); return; }
+      const members = membersRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (members.length < 2) { this.showToast('⚠️ Nhóm gia đình cần ít nhất 2 MSHS', 'error'); return; }
+      const tenPH = prompt('Tên PH / Chủ tài khoản (bỏ trống nếu không biết):') || '';
+      const stk = prompt('STK đại diện (bỏ trống nếu CK qua TPBank/Zalo):') || '';
+      window.Storage.addFamilyGroup({ groupName: (name || '').trim() || ('Nhóm ' + members.join(',')), stkDaiDien: stk.trim() || tenPH.trim() || members[0], tenPH: tenPH.trim(), members });
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast('✅ Đã thêm nhóm gia đình', 'success');
+    },
+
+    deleteFamilyGroup(groupId) {
+      if (!confirm('Xóa nhóm gia đình này?')) return;
+      window.Storage.removeFamilyGroup(groupId);
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast('🗑️ Đã xóa nhóm gia đình', 'success');
+    },
+
+    // Thêm gói đóng trước nhiều tháng (khôi phục từ bản cũ)
+    addPackageUI() {
+      const state = this.$store.appState;
+      const defMonth = state.monthYear || new Date().toISOString().slice(0, 7);
+      const packageName = prompt('Tên gói (gợi nhớ, VD: Gói 6 tháng Nhà Cô Lan):');
+      if (!packageName) return;
+      const membersRaw = prompt('Danh sách MSHS, cách nhau dấu phẩy (VD: HV011, HV012):');
+      if (!membersRaw) { this.showToast('⚠️ Chưa nhập MSHS', 'warning'); return; }
+      const members = membersRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!members.length) { this.showToast('⚠️ Chưa nhập MSHS', 'warning'); return; }
+      const months = parseInt(prompt('Số tháng đóng trước (6 hoặc 12):', '6') || '6', 10) || 6;
+      const startMonth = (prompt(`Tháng bắt đầu (YYYY-MM):`, defMonth) || defMonth).trim();
+      if (!/^\d{4}-\d{2}$/.test(startMonth)) { this.showToast('⚠️ Tháng phải dạng YYYY-MM (VD: 2026-08)', 'error'); return; }
+      const discountPercent = parseFloat(prompt(months >= 12 ? 'Giảm % cho gói 12 tháng (VD: 12):' : 'Giảm % cho gói 6 tháng (VD: 6):', months >= 12 ? '12' : '6') || '0') || 0;
+      const [sy, sm] = startMonth.split('-').map(Number);
+      const endD = new Date(sy, sm - 1 + months);
+      const endMonth = `${endD.getFullYear()}-${String(endD.getMonth() + 1).padStart(2, '0')}`;
+      window.Storage.addPackage({ packageName: packageName.trim(), members, months, startMonth, endMonth, discountPercent });
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast(`✅ Đã thêm gói "${packageName.trim()}" (${months} tháng, giảm ${discountPercent}%)`, 'success');
+    },
+
+    deletePackage(packageId) {
+      if (!confirm('Xóa gói này? HS trong gói sẽ đối soát như bình thường.')) return;
+      window.Storage.removePackage(packageId);
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast('🗑️ Đã xóa gói', 'success');
     },
 
     // Accounting Actions
