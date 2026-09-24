@@ -1017,7 +1017,7 @@
                   <th>STK Đại diện</th>
                   <th>Tên PH</th>
                   <th>Thành viên (MSHS)</th>
-                  <th style="width: 60px;"></th>
+                  <th style="width: 110px;"></th>
                 </tr>
               </thead>
               <tbody>
@@ -1032,7 +1032,10 @@
                     <td x-text="group.stkDaiDien || group.stk"></td>
                     <td x-text="group.tenPH || group.parentName"></td>
                     <td x-text="group.members?.join(', ')"></td>
-                    <td><button class="btn btn-sm btn-danger" @click="deleteFamilyGroup(group.groupId)" title="Xóa nhóm">✕</button></td>
+                    <td style="white-space: nowrap;">
+                      <button class="btn btn-sm btn-outline" @click="editFamilyGroup(group)" title="Sửa thông tin nhóm">✏️</button>
+                      <button class="btn btn-sm btn-danger" @click="deleteFamilyGroup(group.groupId)" title="Xóa nhóm">✕</button>
+                    </td>
                   </tr>
                 </template>
               </tbody>
@@ -1414,7 +1417,7 @@
        style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
     <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0;">👨‍👩‍👧 Thêm Nhóm Gia đình</h3>
+        <h3 style="margin: 0;" x-text="familyEditingId ? '✏️ Sửa Nhóm Gia đình' : '👨‍👩‍👧 Thêm Nhóm Gia đình'"></h3>
         <button @click="showFamilyModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
       </div>
       <div style="margin-bottom: 12px;">
@@ -1440,7 +1443,141 @@
       <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Khi phụ huynh này CK, hệ thống sẽ tự chia đều cho các MSHS trên dựa theo mức học phí của từng bé.<br>💡 Chỉ cần nhập MSHS là đủ. Tên PH và STK là thông tin bổ sung, không bắt buộc.</p>
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
         <button @click="showFamilyModal = false" class="btn btn-secondary">Hủy</button>
-        <button @click="confirmFamilyGroup()" class="btn btn-primary">✅ Thêm nhóm</button>
+        <button @click="confirmFamilyGroup()" class="btn btn-primary" x-text="familyEditingId ? '💾 Lưu thay đổi' : '✅ Thêm nhóm'"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm gói học phí (form 1 lần: Tên gói / MSHS / Số tháng / Từ tháng / Giảm %) -->
+  <div x-show="showPackageModal"
+       x-transition
+       @click.self="showPackageModal = false"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">📦 Thêm Gói học phí</h3>
+        <button @click="showPackageModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Tên gói (gợi nhớ) *</label>
+        <input type="text" x-model="packageForm.packageName" placeholder="VD: Gói 6 tháng Nhà Cô Lan"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Thành viên (MSHS) *</label>
+        <input type="text" x-model="packageForm.membersRaw" placeholder="Cách nhau dấu phẩy (VD: HV011, HV012)"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+      </div>
+      <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Số tháng *</label>
+          <input type="number" x-model="packageForm.months" min="1" max="24"
+                 style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Giảm %</label>
+          <input type="number" x-model="packageForm.discountPercent" min="0" max="100"
+                 style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+        </div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Từ tháng (YYYY-MM) *</label>
+        <input type="text" x-model="packageForm.startMonth" placeholder="VD: 2026-08"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button @click="showPackageModal = false" class="btn btn-secondary">Hủy</button>
+        <button @click="confirmPackage()" class="btn btn-primary">✅ Thêm gói</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm điều chỉnh HP (form 1 lần: MSHS / Loại / Số tiền / Tháng / Ghi chú) -->
+  <div x-show="showAdjustmentModal"
+       x-transition
+       @click.self="showAdjustmentModal = false"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">📝 Thêm Điều chỉnh học phí</h3>
+        <button @click="showAdjustmentModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của HS *</label>
+        <input type="text" x-model="adjustmentForm.mshs" placeholder="VD: HV011"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Loại điều chỉnh *</label>
+        <select x-model="adjustmentForm.type"
+                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+          <option>Giới thiệu bạn mới</option>
+          <option>Tạm ngưng lớp</option>
+          <option>Hỗ trợ hoàn cảnh</option>
+          <option>Ưu đãi khác</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Số tiền (giảm = số âm) *</label>
+          <input type="number" x-model="adjustmentForm.amount" placeholder="VD: -400000"
+                 style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Tháng áp dụng *</label>
+          <input type="text" x-model="adjustmentForm.monthYear" placeholder="YYYY-MM"
+                 style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+        </div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Ghi chú</label>
+        <input type="text" x-model="adjustmentForm.note" placeholder="VD: Mẹ giới thiệu bạn mới học 3 tháng"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Số tiền âm = giảm HP. VD: -400000 = giảm 400k. Nếu HP gốc 800k, sau giảm = 400k.</p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button @click="showAdjustmentModal = false" class="btn btn-secondary">Hủy</button>
+        <button @click="confirmAdjustment()" class="btn btn-primary">✅ Thêm điều chỉnh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm giới thiệu bạn mới (form 1 lần: PH / HS mới / Tháng bắt đầu / Số tiền) -->
+  <div x-show="showReferralModal"
+       x-transition
+       @click.self="showReferralModal = false"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">🎁 Thêm Giới thiệu bạn mới</h3>
+        <button @click="showReferralModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của PH giới thiệu (người được giảm) *</label>
+        <input type="text" x-model="referralForm.mshs" placeholder="VD: HV001"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của HS mới được giới thiệu *</label>
+        <input type="text" x-model="referralForm.referredMSHS" placeholder="VD: HV002"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+      </div>
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <div style="flex: 1;">
+          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Tháng HS mới bắt đầu *</label>
+          <input type="text" x-model="referralForm.startMonth" placeholder="YYYY-MM"
+                 style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Số tiền giảm</label>
+          <input type="number" x-model="referralForm.amount" placeholder="-400000"
+                 style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+        </div>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Sau 3 tháng HS mới học → hệ thống tự nhắc để trừ tiền. Mỗi HS mới chỉ được giới thiệu 1 lần (chống trùng).</p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button @click="showReferralModal = false" class="btn btn-secondary">Hủy</button>
+        <button @click="confirmReferralAdd()" class="btn btn-primary">✅ Thêm giới thiệu</button>
       </div>
     </div>
   </div>

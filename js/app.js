@@ -126,6 +126,14 @@ function appComponent() {
     // Form modal Thêm nhóm gia đình (1 form 4 ô như bản cũ, thay prompt hỏi dồn 4 lần)
     showFamilyModal: false,
     familyForm: { groupName: '', membersRaw: '', tenPH: '', stk: '' },
+    familyEditingId: null,
+    // Form modal Gói / Điều chỉnh / Giới thiệu (bỏ prompt hỏi dồn nhiều lần)
+    showPackageModal: false,
+    packageForm: { packageName: '', membersRaw: '', months: '6', startMonth: '', discountPercent: '6' },
+    showAdjustmentModal: false,
+    adjustmentForm: { mshs: '', type: 'Ưu đãi khác', amount: '-400000', monthYear: '', note: '' },
+    showReferralModal: false,
+    referralForm: { mshs: '', referredMSHS: '', startMonth: '', amount: '-400000' },
 
     init() {
       // Set default month
@@ -568,6 +576,19 @@ function appComponent() {
     // Thêm nhóm Gia đình: mở form modal 1 lần 4 ô (bản cũ) — không hỏi prompt dồn 4 lần
     addFamilyGroupUI() {
       this.familyForm = { groupName: '', membersRaw: '', tenPH: '', stk: '' };
+      this.familyEditingId = null;
+      this.showFamilyModal = true;
+    },
+
+    // Sửa nhóm Gia đình: mở lại form cũ, đổi thông tin rồi lưu đè (giữ nguyên groupId)
+    editFamilyGroup(group) {
+      this.familyForm = {
+        groupName: group.groupName || group.name || '',
+        membersRaw: (group.members || []).join(', '),
+        tenPH: group.tenPH || group.parentName || '',
+        stk: group.stkDaiDien || group.stk || ''
+      };
+      this.familyEditingId = group.groupId;
       this.showFamilyModal = true;
     },
 
@@ -580,12 +601,24 @@ function appComponent() {
       if (members.length < 2) { this.showToast('⚠️ Nhóm gia đình cần ít nhất 2 MSHS', 'error'); return; }
       const tenPH = (this.familyForm.tenPH || '').trim();
       const stk = (this.familyForm.stk || '').trim();
-      window.Storage.addFamilyGroup({ groupName: name, stkDaiDien: stk || tenPH || members[0], tenPH, members });
-      window.Storage.addHistory && window.Storage.addHistory({ action: 'Thêm nhóm gia đình', detail: `${name}: ${members.join(', ')}` });
+      if (this.familyEditingId) {
+        const list = window.Storage.loadFamilyGroups() || [];
+        const g = list.find(x => x.groupId === this.familyEditingId);
+        if (g) {
+          g.groupName = name; g.members = members; g.tenPH = tenPH;
+          g.stkDaiDien = stk || tenPH || members[0];
+          window.Storage.saveFamilyGroups(list);
+          window.Storage.addHistory && window.Storage.addHistory({ action: 'Sửa nhóm gia đình', detail: `${name}: ${members.join(', ')}` });
+        }
+        this.familyEditingId = null;
+      } else {
+        window.Storage.addFamilyGroup({ groupName: name, stkDaiDien: stk || tenPH || members[0], tenPH, members });
+        window.Storage.addHistory && window.Storage.addHistory({ action: 'Thêm nhóm gia đình', detail: `${name}: ${members.join(', ')}` });
+      }
       this.showFamilyModal = false;
       this.loadSettingsUI();
       this.runMatching();
-      this.showToast('✅ Đã thêm nhóm gia đình', 'success');
+      this.showToast('✅ Đã lưu nhóm gia đình', 'success');
     },
 
     deleteFamilyGroup(groupId) {
@@ -596,27 +629,33 @@ function appComponent() {
       this.showToast('🗑️ Đã xóa nhóm gia đình', 'success');
     },
 
-    // Thêm gói đóng trước nhiều tháng (khôi phục từ bản cũ)
+    // Gói đóng trước nhiều tháng: mở form modal 1 lần (bỏ prompt hỏi dồn 5 lần)
     addPackageUI() {
       const state = this.$store.appState;
-      const defMonth = state.monthYear || new Date().toISOString().slice(0, 7);
-      const packageName = prompt('Tên gói (gợi nhớ, VD: Gói 6 tháng Nhà Cô Lan):');
-      if (!packageName) return;
-      const membersRaw = prompt('Danh sách MSHS, cách nhau dấu phẩy (VD: HV011, HV012):');
-      if (!membersRaw) { this.showToast('⚠️ Chưa nhập MSHS', 'warning'); return; }
+      this.packageForm = { packageName: '', membersRaw: '', months: '6', startMonth: state.monthYear || new Date().toISOString().slice(0, 7), discountPercent: '6' };
+      this.showPackageModal = true;
+    },
+
+    confirmPackage() {
+      const packageName = (this.packageForm.packageName || '').trim();
+      const membersRaw = (this.packageForm.membersRaw || '').trim();
+      if (!packageName) { this.showToast('⚠️ Nhập Tên gói (VD: Gói 6 tháng Nhà Cô Lan)', 'error'); return; }
+      if (!membersRaw) { this.showToast('⚠️ Nhập DS MSHS (bắt buộc)', 'error'); return; }
       const members = membersRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-      if (!members.length) { this.showToast('⚠️ Chưa nhập MSHS', 'warning'); return; }
-      const months = parseInt(prompt('Số tháng đóng trước (6 hoặc 12):', '6') || '6', 10) || 6;
-      const startMonth = (prompt(`Tháng bắt đầu (YYYY-MM):`, defMonth) || defMonth).trim();
-      if (!/^\d{4}-\d{2}$/.test(startMonth)) { this.showToast('⚠️ Tháng phải dạng YYYY-MM (VD: 2026-08)', 'error'); return; }
-      const discountPercent = parseFloat(prompt(months >= 12 ? 'Giảm % cho gói 12 tháng (VD: 12):' : 'Giảm % cho gói 6 tháng (VD: 6):', months >= 12 ? '12' : '6') || '0') || 0;
+      if (!members.length) { this.showToast('⚠️ Chưa nhập MSHS', 'error'); return; }
+      const months = parseInt(this.packageForm.months || '6', 10) || 6;
+      const startMonth = (this.packageForm.startMonth || '').trim();
+      if (!/^\d{4}-\d{2}$/.test(startMonth)) { this.showToast('⚠️ Tháng bắt đầu phải dạng YYYY-MM (VD: 2026-08)', 'error'); return; }
+      const discountPercent = parseFloat(this.packageForm.discountPercent || '0') || 0;
       const [sy, sm] = startMonth.split('-').map(Number);
       const endD = new Date(sy, sm - 1 + months);
       const endMonth = `${endD.getFullYear()}-${String(endD.getMonth() + 1).padStart(2, '0')}`;
-      window.Storage.addPackage({ packageName: packageName.trim(), members, months, startMonth, endMonth, discountPercent });
+      window.Storage.addPackage({ packageName, members, months, startMonth, endMonth, discountPercent });
+      window.Storage.addHistory && window.Storage.addHistory({ action: 'Thêm gói học phí', detail: `${packageName}: ${members.join(', ')} (${months} tháng, giảm ${discountPercent}%)` });
+      this.showPackageModal = false;
       this.loadSettingsUI();
       this.runMatching();
-      this.showToast(`✅ Đã thêm gói "${packageName.trim()}" (${months} tháng, giảm ${discountPercent}%)`, 'success');
+      this.showToast(`✅ Đã thêm gói "${packageName}" (${months} tháng, giảm ${discountPercent}%)`, 'success');
     },
 
     deletePackage(packageId) {
@@ -627,23 +666,31 @@ function appComponent() {
       this.showToast('🗑️ Đã xóa gói', 'success');
     },
 
-    // Thêm điều chỉnh học phí (khôi phục từ bản cũ — VD: giới thiệu bạn mới -400k)
+    // Điều chỉnh HP: mở form modal 1 lần (bỏ prompt hỏi dồn 4 lần)
     addAdjustmentUI() {
       const state = this.$store.appState;
-      const mshs = prompt('MSHS của HS được điều chỉnh:');
-      if (!mshs) return;
-      const student = (state.students || []).find(s => s.mshs === mshs.trim().toUpperCase());
+      this.adjustmentForm = { mshs: '', type: 'Ưu đãi khác', amount: '-400000', monthYear: state.monthYear || '', note: '' };
+      this.showAdjustmentModal = true;
+    },
+
+    confirmAdjustment() {
+      const state = this.$store.appState;
+      const mshs = (this.adjustmentForm.mshs || '').trim().toUpperCase();
+      if (!mshs) { this.showToast('⚠️ Nhập MSHS của HS được điều chỉnh', 'error'); return; }
+      const student = (state.students || []).find(s => s.mshs === mshs);
       if (!student) { this.showToast(`⚠️ Không tìm thấy MSHS ${mshs} trong DS học sinh`, 'error'); return; }
-      const type = prompt('Loại điều chỉnh (gõ đúng 1 trong 4):\n1. Giới thiệu bạn mới\n2. Tạm ngưng lớp\n3. Hỗ trợ hoàn cảnh\n4. Ưu đãi khác', 'Giới thiệu bạn mới') || 'Ưu đãi khác';
-      const amount = parseInt(prompt('Số tiền (giảm = số âm, VD: -400000):', '-400000') || '0', 10) || 0;
+      const type = (this.adjustmentForm.type || 'Ưu đãi khác').trim();
+      const amount = parseInt(this.adjustmentForm.amount || '0', 10) || 0;
       if (!amount) { this.showToast('⚠️ Số tiền phải khác 0', 'error'); return; }
-      const adjMonth = (prompt('Tháng áp dụng (YYYY-MM):', state.monthYear) || state.monthYear).trim();
+      const adjMonth = (this.adjustmentForm.monthYear || state.monthYear || '').trim();
       if (!/^\d{4}-\d{2}$/.test(adjMonth)) { this.showToast('⚠️ Tháng phải dạng YYYY-MM', 'error'); return; }
-      const note = prompt('Ghi chú (bỏ trống nếu không có):') || '';
-      window.Storage.addFeeAdjustment({ mshs: student.mshs, studentName: student.fullName || '', type: type.trim(), amount, monthYear: adjMonth, note: note.trim() });
+      const note = (this.adjustmentForm.note || '').trim();
+      window.Storage.addFeeAdjustment({ mshs: student.mshs, studentName: student.fullName || '', type, amount, monthYear: adjMonth, note });
+      window.Storage.addHistory && window.Storage.addHistory({ action: 'Thêm điều chỉnh HP', detail: `${student.mshs}: ${type} ${amount} tháng ${adjMonth}` });
+      this.showAdjustmentModal = false;
       this.loadSettingsUI();
       this.runMatching();
-      this.showToast(`✅ Đã thêm điều chỉnh ${type.trim()} cho ${student.mshs}`, 'success');
+      this.showToast(`✅ Đã thêm điều chỉnh ${type} cho ${student.mshs}`, 'success');
     },
 
     deleteAdjustment(adjId) {
@@ -654,29 +701,36 @@ function appComponent() {
       this.showToast('🗑️ Đã xóa điều chỉnh', 'success');
     },
 
-    // Giới thiệu bạn mới: PH giới thiệu HS mới → sau 3 tháng HS mới học → PH được giảm (mặc định -400k)
+    // Giới thiệu bạn mới: mở form modal 1 lần (bỏ prompt hỏi dồn 4 lần)
     addReferralUI() {
       const state = this.$store.appState;
+      if (!(state.students || []).length) { this.showToast('⚠️ Chưa có DS học sinh. Import DS HS trước đã nhé.', 'warning'); return; }
+      this.referralForm = { mshs: '', referredMSHS: '', startMonth: state.monthYear || '', amount: '-400000' };
+      this.showReferralModal = true;
+    },
+
+    confirmReferralAdd() {
+      const state = this.$store.appState;
       const students = state.students || [];
-      if (!students.length) { this.showToast('⚠️ Chưa có DS học sinh. Import DS HS trước đã nhé.', 'warning'); return; }
-      const mshs = prompt('MSHS của PH giới thiệu (người được giảm):');
-      if (!mshs) return;
-      const ph = students.find(s => s.mshs === mshs.trim().toUpperCase());
+      const mshs = (this.referralForm.mshs || '').trim().toUpperCase();
+      const referred = (this.referralForm.referredMSHS || '').trim().toUpperCase();
+      if (!mshs) { this.showToast('⚠️ Nhập MSHS của PH giới thiệu', 'error'); return; }
+      if (!referred) { this.showToast('⚠️ Nhập MSHS của HS mới', 'error'); return; }
+      const ph = students.find(s => s.mshs === mshs);
       if (!ph) { this.showToast(`⚠️ Không tìm thấy MSHS ${mshs} trong DS học sinh`, 'error'); return; }
-      const referred = prompt('MSHS của HS mới được giới thiệu:');
-      if (!referred) return;
-      const hs = students.find(s => s.mshs === referred.trim().toUpperCase());
+      const hs = students.find(s => s.mshs === referred);
       if (!hs) { this.showToast(`⚠️ Không tìm thấy MSHS ${referred} trong DS học sinh`, 'error'); return; }
       if (ph.mshs === hs.mshs) { this.showToast('⚠️ MSHS giới thiệu và HS mới phải khác nhau', 'error'); return; }
-      const startMonth = (prompt('Tháng HS mới bắt đầu học (YYYY-MM):', state.monthYear) || state.monthYear).trim();
+      const startMonth = (this.referralForm.startMonth || state.monthYear || '').trim();
       if (!/^\d{4}-\d{2}$/.test(startMonth)) { this.showToast('⚠️ Tháng phải dạng YYYY-MM', 'error'); return; }
-      const amount = parseInt(prompt('Số tiền giảm (mặc định -400000):', '-400000') || '-400000', 10) || -400000;
+      const amount = parseInt(this.referralForm.amount || '-400000', 10) || -400000;
       const [sy, sm] = startMonth.split('-').map(Number);
       const applyD = new Date(sy, sm - 1 + 3);
       const applyMonth = `${applyD.getFullYear()}-${String(applyD.getMonth() + 1).padStart(2, '0')}`;
       const result = window.Storage.addReferral({ mshs: ph.mshs, referredMSHS: hs.mshs, startMonth, applyMonth, amount, note: `Giới thiệu ${hs.mshs} bắt đầu ${startMonth}` });
       if (result && result.error) { this.showToast(result.error, 'error'); return; }
       window.Storage.addHistory && window.Storage.addHistory({ action: 'Thêm giới thiệu bạn mới', detail: `${ph.mshs} (${ph.fullName || ''}) giới thiệu ${hs.mshs} (${hs.fullName || ''}) bắt đầu ${startMonth}, giảm từ ${applyMonth}` });
+      this.showReferralModal = false;
       this.loadSettingsUI();
       this.showToast(`✅ Đã thêm: ${ph.mshs} giới thiệu ${hs.mshs}. Giảm từ ${applyMonth}`, 'success');
     },
