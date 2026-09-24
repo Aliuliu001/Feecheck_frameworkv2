@@ -1056,6 +1056,7 @@
                   <th>Tên gói</th>
                   <th>MSHS thành viên</th>
                   <th>Họ tên học sinh</th>
+                  <th>Lớp</th>
                   <th>Số tháng</th>
                   <th>Giảm %</th>
                   <th>Từ tháng</th>
@@ -1066,7 +1067,7 @@
               <tbody>
                 <template x-if="!(packageData || []).length">
                   <tr>
-                    <td colspan="8" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
+                    <td colspan="9" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td>
                   </tr>
                 </template>
                 <template x-for="pkg in (packageData || [])" :key="pkg.packageId">
@@ -1074,6 +1075,7 @@
                     <td x-text="pkg.packageName || pkg.groupName"></td>
                     <td style="white-space: nowrap;" x-text="pkg.members?.join(', ')"></td>
                     <td class="wrap" x-text="pkgMemberNames(pkg.members)"></td>
+                    <td class="wrap" x-text="pkgMemberClasses(pkg.members)"></td>
                     <td style="text-align: center;" x-text="pkg.months"></td>
                     <td style="text-align: center;" x-text="pkg.discountPercent"></td>
                     <td style="white-space: nowrap;" x-text="pkg.startMonth"></td>
@@ -1404,6 +1406,7 @@
       <div style="background: #E8F5E9; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 15px;">
         <strong>Đã chọn:</strong> <span style="font-weight: 700;" x-text="assignSelected || '(chưa chọn)'"></span>
         <span x-show="assignStudentName" x-text="' — ' + assignStudentName"></span>
+        <span x-show="assignSelected && studentClass(assignSelected)" style="color: var(--text-secondary);" x-text="assignSelected && studentClass(assignSelected) ? ' — ' + studentClass(assignSelected) : ''"></span>
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -1428,10 +1431,30 @@
         <input type="text" x-model="familyForm.groupName" placeholder="VD: Nhà Cô Lan"
                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
       </div>
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px; position: relative;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Danh sách MSHS của các con (bắt buộc) *</label>
-        <input type="text" x-model="familyForm.membersRaw" placeholder="Cách nhau dấu phẩy (VD: HV011, HV012)"
+        <input type="text" x-model="familyForm.membersRaw" placeholder="Gõ tên/MSHS/lớp rồi bấm chọn (VD: HV011, HV012)"
+               @focus="pickOpen = 'family'" @input="pickOpen = 'family'"
                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+        <template x-if="pickOpen === 'family' && pickSuggestions().length">
+          <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <template x-for="s in pickSuggestions()" :key="s.mshs">
+              <div @click="pickStudent(s.mshs)" style="padding: 8px 12px; cursor: pointer; font-size: 14px;"
+                   x-text="s.mshs + ' — ' + s.fullName + (s.className ? ' — ' + s.className : '')"></div>
+            </template>
+          </div>
+        </template>
+        <template x-if="previewMembers(familyForm.membersRaw).length">
+          <div style="margin-top: 8px; font-size: 13px; display: flex; flex-direction: column; gap: 4px;">
+            <template x-for="p in previewMembers(familyForm.membersRaw)" :key="p.mshs">
+              <div :style="p.found ? 'color: #2E7D32;' : 'color: #C62828; font-weight: 600;'">
+                <span x-text="'• ' + p.mshs"></span>
+                <span x-show="p.found" x-text="' — ' + p.fullName + (p.className ? ' — ' + p.className : '')"></span>
+                <span x-show="!p.found"> — ⚠️ không có trong DS học sinh</span>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
       <div style="margin-bottom: 12px;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Tên PH / Chủ tài khoản (tùy chọn)</label>
@@ -1466,10 +1489,30 @@
         <input type="text" x-model="packageForm.packageName" placeholder="VD: Gói 6 tháng Nhà Cô Lan"
                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
       </div>
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px; position: relative;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Thành viên (MSHS) *</label>
-        <input type="text" x-model="packageForm.membersRaw" placeholder="Cách nhau dấu phẩy (VD: HV011, HV012)"
+        <input type="text" x-model="packageForm.membersRaw" placeholder="Gõ tên/MSHS/lớp rồi bấm chọn (VD: HV011, HV012)"
+               @focus="pickOpen = 'pkg'" @input="pickOpen = 'pkg'"
                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+        <template x-if="pickOpen === 'pkg' && pickSuggestions().length">
+          <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <template x-for="s in pickSuggestions()" :key="s.mshs">
+              <div @click="pickStudent(s.mshs)" style="padding: 8px 12px; cursor: pointer; font-size: 14px;"
+                   x-text="s.mshs + ' — ' + s.fullName + (s.className ? ' — ' + s.className : '')"></div>
+            </template>
+          </div>
+        </template>
+        <template x-if="previewMembers(packageForm.membersRaw).length">
+          <div style="margin-top: 8px; font-size: 13px; display: flex; flex-direction: column; gap: 4px;">
+            <template x-for="p in previewMembers(packageForm.membersRaw)" :key="p.mshs">
+              <div :style="p.found ? 'color: #2E7D32;' : 'color: #C62828; font-weight: 600;'">
+                <span x-text="'• ' + p.mshs"></span>
+                <span x-show="p.found" x-text="' — ' + p.fullName + (p.className ? ' — ' + p.className : '')"></span>
+                <span x-show="!p.found"> — ⚠️ không có trong DS học sinh</span>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
       <div style="display: flex; gap: 12px; margin-bottom: 12px;">
         <div style="flex: 1;">
@@ -1505,10 +1548,25 @@
         <h3 style="margin: 0;">📝 Thêm Điều chỉnh học phí</h3>
         <button @click="showAdjustmentModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
       </div>
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px; position: relative;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của HS *</label>
-        <input type="text" x-model="adjustmentForm.mshs" placeholder="VD: HV011"
+        <input type="text" x-model="adjustmentForm.mshs" placeholder="Gõ tên/MSHS/lớp rồi bấm chọn (VD: HV011)"
+               @focus="pickOpen = 'adj'" @input="pickOpen = 'adj'"
                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+        <template x-if="pickOpen === 'adj' && pickSuggestions().length">
+          <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <template x-for="s in pickSuggestions()" :key="s.mshs">
+              <div @click="pickStudent(s.mshs)" style="padding: 8px 12px; cursor: pointer; font-size: 14px;"
+                   x-text="s.mshs + ' — ' + s.fullName + (s.className ? ' — ' + s.className : '')"></div>
+            </template>
+          </div>
+        </template>
+        <template x-if="previewOne(adjustmentForm.mshs)">
+          <div style="margin-top: 6px; font-size: 13px; color: #2E7D32;" x-text="'✓ ' + previewOne(adjustmentForm.mshs).fullName + (previewOne(adjustmentForm.mshs).className ? ' — ' + previewOne(adjustmentForm.mshs).className : '')"></div>
+        </template>
+        <template x-if="adjustmentForm.mshs && adjustmentForm.mshs.trim() && !previewOne(adjustmentForm.mshs)">
+          <div style="margin-top: 6px; font-size: 13px; color: #C62828; font-weight: 600;">⚠️ MSHS này không có trong DS học sinh</div>
+        </template>
       </div>
       <div style="margin-bottom: 12px;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Loại điều chỉnh *</label>
@@ -1555,15 +1613,45 @@
         <h3 style="margin: 0;">🎁 Thêm Giới thiệu bạn mới</h3>
         <button @click="showReferralModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
       </div>
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px; position: relative;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của PH giới thiệu (người được giảm) *</label>
-        <input type="text" x-model="referralForm.mshs" placeholder="VD: HV001"
+        <input type="text" x-model="referralForm.mshs" placeholder="Gõ tên/MSHS/lớp rồi bấm chọn (VD: HV001)"
+               @focus="pickOpen = 'ref1'" @input="pickOpen = 'ref1'"
                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+        <template x-if="pickOpen === 'ref1' && pickSuggestions().length">
+          <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <template x-for="s in pickSuggestions()" :key="s.mshs">
+              <div @click="pickStudent(s.mshs)" style="padding: 8px 12px; cursor: pointer; font-size: 14px;"
+                   x-text="s.mshs + ' — ' + s.fullName + (s.className ? ' — ' + s.className : '')"></div>
+            </template>
+          </div>
+        </template>
+        <template x-if="previewOne(referralForm.mshs)">
+          <div style="margin-top: 6px; font-size: 13px; color: #2E7D32;" x-text="'✓ ' + previewOne(referralForm.mshs).fullName + (previewOne(referralForm.mshs).className ? ' — ' + previewOne(referralForm.mshs).className : '')"></div>
+        </template>
+        <template x-if="referralForm.mshs && referralForm.mshs.trim() && !previewOne(referralForm.mshs)">
+          <div style="margin-top: 6px; font-size: 13px; color: #C62828; font-weight: 600;">⚠️ MSHS này không có trong DS học sinh</div>
+        </template>
       </div>
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px; position: relative;">
         <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của HS mới được giới thiệu *</label>
-        <input type="text" x-model="referralForm.referredMSHS" placeholder="VD: HV002"
+        <input type="text" x-model="referralForm.referredMSHS" placeholder="Gõ tên/MSHS/lớp rồi bấm chọn (VD: HV002)"
+               @focus="pickOpen = 'ref2'" @input="pickOpen = 'ref2'"
                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+        <template x-if="pickOpen === 'ref2' && pickSuggestions().length">
+          <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <template x-for="s in pickSuggestions()" :key="s.mshs">
+              <div @click="pickStudent(s.mshs)" style="padding: 8px 12px; cursor: pointer; font-size: 14px;"
+                   x-text="s.mshs + ' — ' + s.fullName + (s.className ? ' — ' + s.className : '')"></div>
+            </template>
+          </div>
+        </template>
+        <template x-if="previewOne(referralForm.referredMSHS)">
+          <div style="margin-top: 6px; font-size: 13px; color: #2E7D32;" x-text="'✓ ' + previewOne(referralForm.referredMSHS).fullName + (previewOne(referralForm.referredMSHS).className ? ' — ' + previewOne(referralForm.referredMSHS).className : '')"></div>
+        </template>
+        <template x-if="referralForm.referredMSHS && referralForm.referredMSHS.trim() && !previewOne(referralForm.referredMSHS)">
+          <div style="margin-top: 6px; font-size: 13px; color: #C62828; font-weight: 600;">⚠️ MSHS này không có trong DS học sinh</div>
+        </template>
       </div>
       <div style="display: flex; gap: 12px; margin-bottom: 16px;">
         <div style="flex: 1;">
@@ -1581,6 +1669,64 @@
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
         <button @click="showReferralModal = false" class="btn btn-secondary">Hủy</button>
         <button @click="confirmReferralAdd()" class="btn btn-primary">✅ Thêm giới thiệu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm tạm ngưng (form 1 lần: MSHS / Lớp / Lý do) -->
+  <div x-show="showSuspendModal"
+       x-transition
+       @click.self="showSuspendModal = false"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">⏸️ Thêm Tạm ngưng</h3>
+        <button @click="showSuspendModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+      </div>
+      <div style="margin-bottom: 12px; position: relative;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của HS *</label>
+        <input type="text" x-model="suspendForm.mshs" placeholder="Gõ tên/MSHS/lớp rồi bấm chọn"
+               @focus="pickOpen = 'sus'" @input="pickOpen = 'sus'"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+        <template x-if="pickOpen === 'sus' && pickSuggestions().length">
+          <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <template x-for="s in pickSuggestions()" :key="s.mshs">
+              <div @click="pickStudent(s.mshs)" style="padding: 8px 12px; cursor: pointer; font-size: 14px;"
+                   x-text="s.mshs + ' — ' + s.fullName + (s.className ? ' — ' + s.className : '')"></div>
+            </template>
+          </div>
+        </template>
+        <template x-if="previewOne(suspendForm.mshs)">
+          <div style="margin-top: 6px; font-size: 13px; color: #2E7D32;" x-text="'✓ ' + previewOne(suspendForm.mshs).fullName + (previewOne(suspendForm.mshs).className ? ' — ' + previewOne(suspendForm.mshs).className : '')"></div>
+        </template>
+        <template x-if="suspendForm.mshs && suspendForm.mshs.trim() && !previewOne(suspendForm.mshs)">
+          <div style="margin-top: 6px; font-size: 13px; color: #C62828; font-weight: 600;">⚠️ MSHS này không có trong DS học sinh</div>
+        </template>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Lớp tạm ngưng *</label>
+        <template x-if="studentClasses(suspendForm.mshs).length > 1">
+          <select x-model="suspendForm.className"
+                  style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+            <option value="">-- Chọn lớp --</option>
+            <template x-for="c in studentClasses(suspendForm.mshs)" :key="c">
+              <option :value="c" x-text="c"></option>
+            </template>
+          </select>
+        </template>
+        <template x-if="studentClasses(suspendForm.mshs).length <= 1">
+          <input type="text" x-model="suspendForm.className" placeholder="VD: Pumpkin Seed"
+                 style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+        </template>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Lý do</label>
+        <input type="text" x-model="suspendForm.note" placeholder="Bỏ trống nếu không có"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button @click="showSuspendModal = false" class="btn btn-secondary">Hủy</button>
+        <button @click="confirmSuspend()" class="btn btn-primary">⏸️ Tạm ngưng</button>
       </div>
     </div>
   </div>

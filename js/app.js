@@ -134,6 +134,10 @@ function appComponent() {
     adjustmentForm: { mshs: '', type: 'Ưu đãi khác', amount: '-400000', monthYear: '', note: '' },
     showReferralModal: false,
     referralForm: { mshs: '', referredMSHS: '', startMonth: '', amount: '-400000' },
+    // Dropdown gợi ý HS đang mở ở ô nào + form tạm ngưng
+    pickOpen: '',
+    showSuspendModal: false,
+    suspendForm: { mshs: '', className: '', note: '' },
 
     init() {
       // Set default month
@@ -521,6 +525,82 @@ function appComponent() {
       }).join(', ');
     },
 
+    // Tra cứu HS dùng chung cho mọi form nhập liệu (gõ MSHS / tên / lớp đều ra)
+    matchStudents(q, limit = 8) {
+      const students = (this.$store && this.$store.appState && this.$store.appState.students) || [];
+      const query = (q || '').toLowerCase().trim();
+      if (query.length < 2) return [];
+      return students.filter(s =>
+        (s.mshs || '').toLowerCase().includes(query) ||
+        (s.fullName || '').toLowerCase().includes(query) ||
+        (s.className || '').toLowerCase().includes(query)
+      ).slice(0, limit || 8);
+    },
+
+    // Gợi ý cho dropdown đang mở (pickOpen: family | pkg | adj | ref1 | ref2 | sus)
+    pickSuggestions() {
+      let q = '';
+      if (this.pickOpen === 'family') q = (this.familyForm.membersRaw || '').split(',').pop() || '';
+      else if (this.pickOpen === 'pkg') q = (this.packageForm.membersRaw || '').split(',').pop() || '';
+      else if (this.pickOpen === 'adj') q = this.adjustmentForm.mshs || '';
+      else if (this.pickOpen === 'ref1') q = this.referralForm.mshs || '';
+      else if (this.pickOpen === 'ref2') q = this.referralForm.referredMSHS || '';
+      else if (this.pickOpen === 'sus') q = this.suspendForm.mshs || '';
+      else return [];
+      return this.matchStudents(q);
+    },
+
+    // Chọn 1 gợi ý: ô 1 bé thì điền thẳng, ô nhiều bé thì thêm vào cuối
+    pickStudent(mshs) {
+      if (this.pickOpen === 'family') {
+        const parts = (this.familyForm.membersRaw || '').split(',');
+        parts.pop();
+        parts.push(' ' + mshs);
+        this.familyForm.membersRaw = parts.join(',').replace(/^,\s*/, '') + ', ';
+      } else if (this.pickOpen === 'pkg') {
+        const parts = (this.packageForm.membersRaw || '').split(',');
+        parts.pop();
+        parts.push(' ' + mshs);
+        this.packageForm.membersRaw = parts.join(',').replace(/^,\s*/, '') + ', ';
+      } else if (this.pickOpen === 'adj') this.adjustmentForm.mshs = mshs;
+      else if (this.pickOpen === 'ref1') this.referralForm.mshs = mshs;
+      else if (this.pickOpen === 'ref2') this.referralForm.referredMSHS = mshs;
+      else if (this.pickOpen === 'sus') {
+        this.suspendForm.mshs = mshs;
+        const c = this.studentClasses(mshs);
+        if (c.length === 1) this.suspendForm.className = c[0];
+        else if (c.length > 1 && !c.includes(this.suspendForm.className)) this.suspendForm.className = '';
+      }
+      this.pickOpen = '';
+    },
+
+    // Xem trước từng bé trong ô nhập nhiều MSHS (báo đỏ bé không có trong DS)
+    previewMembers(raw) {
+      const tokens = (raw || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      return tokens.map(t => {
+        const s = this.studentByMshs(t);
+        return { mshs: t, found: !!s, fullName: s ? (s.fullName || '') : '', className: s ? (s.className || '') : '' };
+      });
+    },
+
+    // Xem trước 1 MSHS (ô nhập 1 bé)
+    previewOne(mshs) {
+      const t = (mshs || '').trim().toUpperCase();
+      if (!t) return null;
+      return this.studentByMshs(t);
+    },
+
+    studentClasses(mshs) {
+      const s = this.studentByMshs((mshs || '').trim().toUpperCase());
+      if (!s) return [];
+      return (s.className || '').split(',').map(c => c.trim()).filter(Boolean);
+    },
+
+    pkgMemberClasses(members) {
+      if (!members || !members.length) return '';
+      return members.map(m => this.studentClass(m)).filter(Boolean).join(', ');
+    },
+
     confirmAssign() {
       const m = (this.assignSelected || '').trim().toUpperCase();
       if (!m) { this.showToast('⚠️ Chưa chọn MSHS', 'warning'); return; }
@@ -619,6 +699,9 @@ function appComponent() {
       if (!membersRaw) { this.showToast('⚠️ Nhập DS MSHS các con (bắt buộc)', 'error'); return; }
       const members = membersRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
       if (members.length < 2) { this.showToast('⚠️ Nhóm gia đình cần ít nhất 2 MSHS', 'error'); return; }
+      const students = (this.$store && this.$store.appState && this.$store.appState.students) || [];
+      const unknown = members.filter(m => !students.find(s => s.mshs === m));
+      if (unknown.length) { this.showToast('⚠️ MSHS không có trong DS học sinh: ' + unknown.join(', ') + ' — kiểm tra lại, dữ liệu đã nhập vẫn giữ nguyên', 'error'); return; }
       const tenPH = (this.familyForm.tenPH || '').trim();
       const stk = (this.familyForm.stk || '').trim();
       if (this.familyEditingId) {
@@ -663,6 +746,9 @@ function appComponent() {
       if (!membersRaw) { this.showToast('⚠️ Nhập DS MSHS (bắt buộc)', 'error'); return; }
       const members = membersRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
       if (!members.length) { this.showToast('⚠️ Chưa nhập MSHS', 'error'); return; }
+      const students = (this.$store && this.$store.appState && this.$store.appState.students) || [];
+      const unknown = members.filter(m => !students.find(s => s.mshs === m));
+      if (unknown.length) { this.showToast('⚠️ MSHS không có trong DS học sinh: ' + unknown.join(', ') + ' — kiểm tra lại, dữ liệu đã nhập vẫn giữ nguyên', 'error'); return; }
       const months = parseInt(this.packageForm.months || '6', 10) || 6;
       const startMonth = (this.packageForm.startMonth || '').trim();
       if (!/^\d{4}-\d{2}$/.test(startMonth)) { this.showToast('⚠️ Tháng bắt đầu phải dạng YYYY-MM (VD: 2026-08)', 'error'); return; }
@@ -799,16 +885,24 @@ function appComponent() {
 
     suspendStudentUI() {
       const state = this.$store.appState;
-      const mshs = prompt('MSHS của HS cần tạm ngưng:');
-      if (!mshs) return;
-      const student = (state.students || []).find(s => s.mshs === mshs.trim().toUpperCase());
+      if (!(state.students || []).length) { this.showToast('⚠️ Chưa có DS học sinh. Import DS HS trước đã nhé.', 'warning'); return; }
+      this.suspendForm = { mshs: '', className: '', note: '' };
+      this.showSuspendModal = true;
+    },
+
+    confirmSuspend() {
+      const state = this.$store.appState;
+      const mshs = (this.suspendForm.mshs || '').trim().toUpperCase();
+      if (!mshs) { this.showToast('⚠️ Nhập MSHS của HS cần tạm ngưng', 'error'); return; }
+      const student = (state.students || []).find(s => s.mshs === mshs);
       if (!student) { this.showToast(`⚠️ Không tìm thấy MSHS ${mshs} trong DS học sinh`, 'error'); return; }
-      const classes = (student.className || '').split(',').map(c => c.trim()).filter(Boolean);
-      const className = classes.length > 1 ? (prompt(`HS học ${classes.length} lớp. Tạm ngưng lớp nào? (${classes.join(' / ')})`, classes[0]) || '').trim() : (classes[0] || '');
-      if (!className) { this.showToast('⚠️ Chưa chọn lớp', 'warning'); return; }
-      const note = prompt('Lý do (bỏ trống nếu không có):') || '';
-      const result = window.Storage.addSuspended({ mshs: student.mshs, studentName: student.fullName || '', className, monthYear: state.monthYear, note: note.trim() });
+      const className = (this.suspendForm.className || '').trim();
+      if (!className) { this.showToast('⚠️ Chọn lớp cần tạm ngưng', 'error'); return; }
+      const note = (this.suspendForm.note || '').trim();
+      const result = window.Storage.addSuspended({ mshs: student.mshs, studentName: student.fullName || '', className, monthYear: state.monthYear, note });
       if (result && result.error) { this.showToast(result.error, 'error'); return; }
+      window.Storage.addHistory && window.Storage.addHistory({ action: 'Tạm ngưng HS', detail: `${student.mshs} (${student.fullName || ''}) - lớp ${className} tháng ${state.monthYear}` });
+      this.showSuspendModal = false;
       this.loadSuspendedUI();
       this.runMatching();
       this.showToast(`⏸️ Đã tạm ngưng ${student.mshs} - lớp ${className}`, 'success');
