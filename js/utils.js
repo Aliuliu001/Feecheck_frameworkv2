@@ -344,10 +344,12 @@ window.Utils = {
     });
 
     // Bỏ mã GD ngân hàng (mbvcb..., tpb;..., số TK, số tiền còn sót)
-    const words = clean.split(/\s+/).filter(w => {
+    // Tách các ký tự ; . , dính vào chữ/số trước khi lọc (VD: "tpb;10001755048;dang" → 3 phần riêng)
+    clean = clean.replace(/[;.,]+/g, ' ');
+    const words = clean.split(/\s+/).map(w => w.replace(/^[^a-z]+|[^a-z]+$/g, '')).filter(w => {
       if (w.length < 2) return false;
-      if (/^\d+$/.test(w) || /^[\d;.,]+$/.test(w)) return false; // toàn số
-      if (/^[a-z]*\d+[a-z\d]*$/.test(w) && /\d/.test(w)) return false; // mã lẫn số (mbvcb, 6224bft...)
+      if (/^\d+$/.test(w)) return false; // toàn số
+      if (/[0-9]/.test(w)) return false; // mã lẫn số (mbvcb, 6224bft, 10001755048...)
       if (self.keywordFillerWords().includes(w)) return false;
       return true;
     });
