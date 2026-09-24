@@ -272,26 +272,58 @@ window.Utils = {
       .trim();
   },
 
-  // So khớp từ khóa "lỏng": cùng 1 cháu viết dính hay rời, thiếu/thừa chữ vẫn nhận ra
-  // VD: từ khóa DPBAOCHAU vẫn khớp nội dung DOPHUCBAOCHAU T9 (chung phần BAOCHAU)
+  // Từ chung chung trong nội dung CK — không bao giờ là tên người, bỏ qua khi gợi ý/khớp
+  // (VD: "chuyen khoan nhanh qua zalo" có ở CK của mọi nhà → không được dùng để nhận diện)
+  keywordFillerWords: function() {
+    return ['chuyen', 'khoan', 'tien', 'nhanh', 'qua', 'zalo', 'ct', 'chuyen tien', 'hoc phi', 'thang', 'ct den', 'ct tu', 'tpb', 'mbvcb', 'nop tien', 'thanh toan', 'tu', 'cho', 'den', 'tien hoc', 'hp', 'chuyen khoan', 'ck', 'nd', 'giao dich'];
+  },
+
+  // Từ khóa "yếu" = toàn chữ chung chung / họ phổ biến / quá ngắn → không được lưu, không được khớp
+  // (VD: "CHUYEN KHOAN", "NHANH QUA ZALO", "LOI" lưu vào là gom nhầm CK nhiều nhà)
+  // Từ khóa "khỏe" = tên người gửi: tối thiểu 2 chữ có nghĩa (VD: "MY LOI"),
+  // hoặc 1 cụm dính đặc trưng dài >= 6 ký tự (VD: "DPBAOCHAU")
+  isWeakKeyword: function(keyword) {
+    const normKw = this.normalizeText(keyword || '');
+    if (!normKw) return true;
+    const surnames = this.commonSurnames();
+    const fillers = this.keywordFillerWords();
+    const words = normKw.split(' ').filter(w => w.length >= 2);
+    if (words.length === 0) return true;
+    // 1 cụm dính đặc trưng dài (không phải họ/filler) vẫn khỏe
+    if (words.length === 1) {
+      const flat = normKw.replace(/\s+/g, '');
+      if (flat.length >= 6 && !surnames.includes(flat) && !fillers.includes(flat)) return false;
+      return true;
+    }
+    // Nhiều chữ: cần tối thiểu 2 chữ có nghĩa (không phải filler/họ phổ biến)
+    const meaningful = words.filter(w => !fillers.includes(w) && !surnames.includes(w));
+    return meaningful.length < 2;
+  },
+
+  // So khớp từ khóa: nguyên cụm hoặc từng chữ đầy đủ, hoặc đoạn đặc trưng đủ dài
+  // (không còn kiểu "chung đoạn ngắn là nhận" — nguyên nhân gom nhầm CK nhiều nhà vào 1 bé)
   looseKeywordHit: function(normKw, normDesc) {
     if (!normKw || !normDesc) return false;
+    // 1. Khớp nguyên cụm: "my loi" khớp "my loi chuyen..."
     if (normDesc.includes(normKw)) return true;
+    // 2. Khớp từng chữ đầy đủ (dính/rời đều được): "bao chau" khớp "dophucbaochau"
     const kwWords = normKw.split(' ').filter(w => w.length > 2);
     if (kwWords.length > 1 && kwWords.every(w => normDesc.includes(w))) return true;
-    // So không dấu cách: "bao chau" khớp "baochau"
     const kwFlat = normKw.replace(/\s+/g, '');
     const descFlat = normDesc.replace(/\s+/g, '');
+    // 3. Dính/rời toàn cụm: "baochau" khớp "bao chau"
     if (kwFlat.length >= 4 && descFlat.includes(kwFlat)) return true;
-    if (descFlat.length >= 4 && kwFlat.includes(descFlat)) return true;
-    // Chung đoạn dài đặc trưng (>=6 ký tự, không phải họ phổ biến): "dpbaochau" & "dophucbaochau" chung "baochau"
+    // 4. Chung đoạn đặc trưng: đoạn chung phải đủ dài so với từ khóa (>=60%),
+    //    và không phải họ phổ biến / từ chung chung (VD: "chuyen" không được tính)
     const surnames = this.commonSurnames();
-    const minLen = 6;
-    if (kwFlat.length >= minLen) {
-      for (let i = 0; i + minLen <= kwFlat.length; i++) {
-        for (let l = Math.min(12, kwFlat.length - i); l >= minLen; l--) {
+    const fillers = this.keywordFillerWords();
+    const needLen = Math.max(6, Math.ceil(kwFlat.length * 0.6));
+    if (kwFlat.length >= 6) {
+      for (let i = 0; i + needLen <= kwFlat.length; i++) {
+        for (let l = Math.min(12, kwFlat.length - i); l >= needLen; l--) {
           const sub = kwFlat.substring(i, i + l);
           if (surnames.includes(sub)) continue;
+          if (fillers.includes(sub)) continue;
           if (descFlat.includes(sub)) return true;
         }
       }
@@ -300,22 +332,25 @@ window.Utils = {
   },
 
   // Trích xuất từ khóa tiềm năng từ nội dung chuyển khoản
+  // (chỉ giữ tên người gửi — bỏ hết chữ chung chung như "chuyen khoan / nhanh qua / zalo",
+  //  bỏ mã ngân hàng, số TK, số tiền — để gợi ý lúc gán ngắn gọn, lần sau không gom nhầm)
   extractKeywordsFromDescription: function(desc) {
     if (!desc) return [];
-    let clean = Utils.normalizeText(desc);
-    
-    // Loại bỏ các từ vô nghĩa phổ biến
-    const fillerWords = [
-      'chuyen tien', 'hoc phi', 'thang', 'ct den', 'mbvcb', 'nop tien', 'thanh toan',
-      'tu', 'cho', 'den', 'tien hoc', 'hp', 'chuyen khoan', 'ck', 'nd', 'giao dich'
-    ];
-    
-    fillerWords.forEach(word => {
+    const self = this;
+    let clean = self.normalizeText(desc);
+
+    self.keywordFillerWords().forEach(word => {
       clean = clean.replace(new RegExp(`\\b${word}\\b`, 'g'), ' ');
     });
-    
-    // Tách thành các từ và lấy những cụm từ có nghĩa (độ dài > 3)
-    const words = clean.split(/\s+/).filter(w => w.length > 2);
+
+    // Bỏ mã GD ngân hàng (mbvcb..., tpb;..., số TK, số tiền còn sót)
+    const words = clean.split(/\s+/).filter(w => {
+      if (w.length < 2) return false;
+      if (/^\d+$/.test(w) || /^[\d;.,]+$/.test(w)) return false; // toàn số
+      if (/^[a-z]*\d+[a-z\d]*$/.test(w) && /\d/.test(w)) return false; // mã lẫn số (mbvcb, 6224bft...)
+      if (self.keywordFillerWords().includes(w)) return false;
+      return true;
+    });
     return words;
   }
 };

@@ -616,6 +616,10 @@ function appComponent() {
         // Gán TPB = lưu keyword (Từ khóa → MSHS), lần sau tự khớp
         const kwInput = (this.assignKeyword || '').trim().toUpperCase();
         if (!kwInput) { this.showToast('⚠️ Nhập Từ khóa để lưu (VD: tên PH viết tắt)', 'warning'); return; }
+        if (window.Utils && window.Utils.isWeakKeyword && window.Utils.isWeakKeyword(kwInput)) {
+          this.showToast(`⚠️ Từ khóa "${kwInput}" chung chung quá (giống CK nhiều nhà) — sửa lại thành tên người gửi, VD: MY LOI. Dữ liệu đã nhập vẫn giữ nguyên.`, 'error');
+          return;
+        }
         window.Storage.addKeyword({ keyword: kwInput, mshs: m, tenHS: found.fullName || '' });
         this.showToast(`✅ Đã lưu từ khóa "${kwInput}" → ${m}. Đang chạy lại...`, 'success');
       }

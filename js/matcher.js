@@ -127,10 +127,15 @@ window.Matcher = {
     }
 
     // Nhóm các keyword trùng nhau (cùng chuỗi) thành 1 keyword -> [mshs...]
+    // Từ khóa "yếu" (toàn chữ chung chung / quá ngắn) bị bỏ qua — lưu vào là gom nhầm CK nhiều nhà
     const kwGroups = new Map();
     keywordsList.forEach(k => {
       const normKw = Utils.normalizeText(k.keyword);
       if (!normKw) return;
+      if (Utils.isWeakKeyword && Utils.isWeakKeyword(k.keyword)) {
+        console.warn(`[MATCH] Bỏ từ khóa yếu "${k.keyword}" → ${k.mshs} (chung chung, dễ gom nhầm)`);
+        return;
+      }
       if (!kwGroups.has(normKw)) kwGroups.set(normKw, []);
       kwGroups.get(normKw).push(k);
     });
