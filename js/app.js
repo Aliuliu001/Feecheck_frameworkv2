@@ -91,6 +91,9 @@ function appComponent() {
     reportTeacherOptions: [],
     suspendedData: [],
     adjustmentData: [],
+    referralData: [],
+    referralAlerts: [],
+    historyData: [],
     filteredReportRows: [],
     
     // Accounting UI
@@ -120,6 +123,9 @@ function appComponent() {
     assignSelected: '',
     ignoredKeys: [],
     lastIgnored: null,
+    // Form modal Thêm nhóm gia đình (1 form 4 ô như bản cũ, thay prompt hỏi dồn 4 lần)
+    showFamilyModal: false,
+    familyForm: { groupName: '', membersRaw: '', tenPH: '', stk: '' },
 
     init() {
       // Set default month
@@ -141,6 +147,9 @@ function appComponent() {
       this.familyGroups = window.Storage.loadFamilyGroups() || [];
       this.packageData = window.Storage.loadPackages() || [];
       this.adjustmentData = window.Storage.loadFeeAdjustments ? (window.Storage.loadFeeAdjustments() || []) : [];
+      this.referralData = window.Storage.loadReferrals ? (window.Storage.loadReferrals() || []) : [];
+      this.historyData = window.Storage.loadHistory ? (window.Storage.loadHistory() || []).slice(0, 30) : [];
+      this.checkPendingReferrals();
     },
     
     showToast(message, type = 'info') {
@@ -556,17 +565,24 @@ function appComponent() {
       this.runMatching();
     },
 
-    // Thêm nhóm Gia đình (khôi phục từ bản cũ — bản Alpine viết lại làm rơi mất)
+    // Thêm nhóm Gia đình: mở form modal 1 lần 4 ô (bản cũ) — không hỏi prompt dồn 4 lần
     addFamilyGroupUI() {
-      const name = prompt('Tên nhóm (gợi nhớ, VD: Nhà Cô Lan):');
-      if (name === null) return;
-      const membersRaw = prompt('Danh sách MSHS các con, cách nhau dấu phẩy (VD: HV011, HV012):');
-      if (!membersRaw) { this.showToast('⚠️ Chưa nhập MSHS', 'warning'); return; }
+      this.familyForm = { groupName: '', membersRaw: '', tenPH: '', stk: '' };
+      this.showFamilyModal = true;
+    },
+
+    confirmFamilyGroup() {
+      const name = (this.familyForm.groupName || '').trim();
+      const membersRaw = (this.familyForm.membersRaw || '').trim();
+      if (!name) { this.showToast('⚠️ Nhập Tên nhóm (gợi nhớ, VD: Nhà Cô Lan)', 'error'); return; }
+      if (!membersRaw) { this.showToast('⚠️ Nhập DS MSHS các con (bắt buộc)', 'error'); return; }
       const members = membersRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
       if (members.length < 2) { this.showToast('⚠️ Nhóm gia đình cần ít nhất 2 MSHS', 'error'); return; }
-      const tenPH = prompt('Tên PH / Chủ tài khoản (bỏ trống nếu không biết):') || '';
-      const stk = prompt('STK đại diện (bỏ trống nếu CK qua TPBank/Zalo):') || '';
-      window.Storage.addFamilyGroup({ groupName: (name || '').trim() || ('Nhóm ' + members.join(',')), stkDaiDien: stk.trim() || tenPH.trim() || members[0], tenPH: tenPH.trim(), members });
+      const tenPH = (this.familyForm.tenPH || '').trim();
+      const stk = (this.familyForm.stk || '').trim();
+      window.Storage.addFamilyGroup({ groupName: name, stkDaiDien: stk || tenPH || members[0], tenPH, members });
+      window.Storage.addHistory && window.Storage.addHistory({ action: 'Thêm nhóm gia đình', detail: `${name}: ${members.join(', ')}` });
+      this.showFamilyModal = false;
       this.loadSettingsUI();
       this.runMatching();
       this.showToast('✅ Đã thêm nhóm gia đình', 'success');
@@ -636,6 +652,69 @@ function appComponent() {
       this.loadSettingsUI();
       this.runMatching();
       this.showToast('🗑️ Đã xóa điều chỉnh', 'success');
+    },
+
+    // Giới thiệu bạn mới: PH giới thiệu HS mới → sau 3 tháng HS mới học → PH được giảm (mặc định -400k)
+    addReferralUI() {
+      const state = this.$store.appState;
+      const students = state.students || [];
+      if (!students.length) { this.showToast('⚠️ Chưa có DS học sinh. Import DS HS trước đã nhé.', 'warning'); return; }
+      const mshs = prompt('MSHS của PH giới thiệu (người được giảm):');
+      if (!mshs) return;
+      const ph = students.find(s => s.mshs === mshs.trim().toUpperCase());
+      if (!ph) { this.showToast(`⚠️ Không tìm thấy MSHS ${mshs} trong DS học sinh`, 'error'); return; }
+      const referred = prompt('MSHS của HS mới được giới thiệu:');
+      if (!referred) return;
+      const hs = students.find(s => s.mshs === referred.trim().toUpperCase());
+      if (!hs) { this.showToast(`⚠️ Không tìm thấy MSHS ${referred} trong DS học sinh`, 'error'); return; }
+      if (ph.mshs === hs.mshs) { this.showToast('⚠️ MSHS giới thiệu và HS mới phải khác nhau', 'error'); return; }
+      const startMonth = (prompt('Tháng HS mới bắt đầu học (YYYY-MM):', state.monthYear) || state.monthYear).trim();
+      if (!/^\d{4}-\d{2}$/.test(startMonth)) { this.showToast('⚠️ Tháng phải dạng YYYY-MM', 'error'); return; }
+      const amount = parseInt(prompt('Số tiền giảm (mặc định -400000):', '-400000') || '-400000', 10) || -400000;
+      const [sy, sm] = startMonth.split('-').map(Number);
+      const applyD = new Date(sy, sm - 1 + 3);
+      const applyMonth = `${applyD.getFullYear()}-${String(applyD.getMonth() + 1).padStart(2, '0')}`;
+      const result = window.Storage.addReferral({ mshs: ph.mshs, referredMSHS: hs.mshs, startMonth, applyMonth, amount, note: `Giới thiệu ${hs.mshs} bắt đầu ${startMonth}` });
+      if (result && result.error) { this.showToast(result.error, 'error'); return; }
+      window.Storage.addHistory && window.Storage.addHistory({ action: 'Thêm giới thiệu bạn mới', detail: `${ph.mshs} (${ph.fullName || ''}) giới thiệu ${hs.mshs} (${hs.fullName || ''}) bắt đầu ${startMonth}, giảm từ ${applyMonth}` });
+      this.loadSettingsUI();
+      this.showToast(`✅ Đã thêm: ${ph.mshs} giới thiệu ${hs.mshs}. Giảm từ ${applyMonth}`, 'success');
+    },
+
+    confirmReferral(refId) {
+      const state = this.$store.appState;
+      const ref = (window.Storage.loadReferrals() || []).find(r => r.id === refId);
+      if (!ref) return;
+      const ph = (state.students || []).find(s => s.mshs === ref.mshs);
+      if (!confirm(`Đã báo ${ph?.fullName || ref.mshs} về việc giảm ${this.$formatCurrency(ref.amount)} tháng ${ref.applyMonth}?\n\nXác nhận xong hệ thống tự trừ HP.`)) return;
+      window.Storage.addFeeAdjustment({ mshs: ref.mshs, studentName: ph?.fullName || '', type: 'Giới thiệu bạn mới', amount: ref.amount, monthYear: ref.applyMonth, note: `Giới thiệu ${ref.referredMSHS}` });
+      window.Storage.confirmReferral(refId);
+      window.Storage.addHistory && window.Storage.addHistory({ action: 'Xác nhận giới thiệu bạn mới', detail: `${ref.mshs}: giảm ${this.$formatCurrency(ref.amount)} tháng ${ref.applyMonth}` });
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast(`✅ Đã xác nhận! ${ref.mshs} được giảm tháng ${ref.applyMonth}`, 'success');
+    },
+
+    deleteReferral(refId) {
+      if (!confirm('Xóa giới thiệu này?')) return;
+      window.Storage.removeReferral(refId);
+      this.loadSettingsUI();
+      this.showToast('🗑️ Đã xóa giới thiệu', 'success');
+    },
+
+    checkPendingReferrals() {
+      try {
+        const state = this.$store ? this.$store.appState : null;
+        const monthYear = state ? state.monthYear : '';
+        if (!monthYear || !window.Storage.getPendingReferrals) { this.referralAlerts = []; return; }
+        const pending = window.Storage.getPendingReferrals(monthYear) || [];
+        this.referralAlerts = pending;
+        if (pending.length && !this._referralToastShown) {
+          this._referralToastShown = true;
+          const lines = pending.map(r => `• ${r.mshs} giới thiệu ${r.referredMSHS}: trừ ${this.$formatCurrency ? this.$formatCurrency(r.amount) : r.amount}`).join('\n');
+          setTimeout(() => this.showToast(`🎁 Đủ 3 tháng, cần trừ tiền:\n${lines}`, 'warning'), 800);
+        }
+      } catch (e) { console.error('referral alert error:', e); }
     },
 
     // HS tạm ngưng tháng này: nạp bảng, thêm thủ công, thêm từ DS chưa đóng, bỏ ngưng
@@ -859,15 +938,36 @@ function appComponent() {
           'Tên nhóm': g.name || g.groupName || '', 'MSHS thành viên': (g.members || []).join(', '),
           'STK đại diện': g.stk || g.stkDaiDien || '', 'PH đại diện': g.parentName || g.tenPH || '', 'Ngày tạo': fdate(g.addedDate)
         }))), 'Nhom Gia dinh');
-        // Sheet 4: Bỏ qua
+        // Sheet 4: Bỏ qua (ngoại lệ đã xử lý: lãi, trùng, sai...)
         const ig = window.Storage._get('joy_ignored_tx', []) || [];
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ig.map(k => ({ 'Mã GD đã bỏ qua': k }))), 'Bo qua');
-        // Sheet 5: Gói (đóng trước nhiều tháng)
-        const pkg = window.Storage._get('joy_packages', []) || window.Storage.loadPackages?.() || [];
-        if (pkg.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pkg), 'Dong goi');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ig.length ? ig.map(k => ({ 'Mã GD đã bỏ qua': k })) : [{ 'Mã GD đã bỏ qua': '(trống)' }]), 'Bo qua');
+        // Sheet 5: Gói (đóng trước nhiều tháng) — cột gọn dễ đọc
+        const pkg = window.Storage.loadPackages ? (window.Storage.loadPackages() || []) : (window.Storage._get('joy_packages', []) || []);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((pkg.length ? pkg : []).map(p => ({
+          'Tên gói': p.packageName || p.groupName || '', 'MSHS thành viên': (p.members || []).join(', '),
+          'Số tháng': p.months || '', 'Giảm %': p.discountPercent ?? '', 'Từ tháng': p.startMonth || '', 'Đến tháng': p.endMonth || '', 'Ngày tạo': fdate(p.addedDate)
+        }))), 'Dong goi');
+        // Sheet 6: Tạm ngưng (MSHS, tên, lớp, lý do, tháng)
+        const sus = window.Storage.loadSuspended ? (window.Storage.loadSuspended() || []) : (window.Storage._get('joy_suspended', []) || []);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((sus.length ? sus : []).map(s => ({
+          'MSHS': s.mshs || '', 'Tên HS': s.studentName || s.tenHS || '', 'Lớp tạm ngưng': s.className || '',
+          'Tháng': s.monthYear || '', 'Lý do': s.note || s.reason || '', 'Ngày tạo': fdate(s.createdDate || s.addedDate)
+        }))), 'Tam ngung');
+        // Sheet 7: Điều chỉnh HP (ưu đãi / giảm giá / tạm ngưng...)
+        const adj = window.Storage.loadFeeAdjustments ? (window.Storage.loadFeeAdjustments() || []) : [];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((adj.length ? adj : []).map(a => ({
+          'MSHS': a.mshs || '', 'Tên HS': a.studentName || '', 'Loại': a.type || '',
+          'Số tiền': a.amount ?? '', 'Tháng áp dụng': a.monthYear || '', 'Ghi chú': a.note || ''
+        }))), 'Dieu chinh HP');
+        // Sheet 8: Giới thiệu bạn mới
+        const ref = window.Storage.loadReferrals ? (window.Storage.loadReferrals() || []) : [];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((ref.length ? ref : []).map(r => ({
+          'PH được giảm': r.mshs || '', 'HS mới': r.referredMSHS || '', 'Bắt đầu': r.startMonth || '',
+          'Giảm từ': r.applyMonth || '', 'Số tiền': r.amount ?? '', 'Trạng thái': r.confirmed ? 'Đã xác nhận' : 'Chờ đủ 3 tháng'
+        }))), 'Gioi thieu');
         // Các sheet còn lại: vét sạch mọi key joy_* khác chưa lên sheet
         try {
-          const done = new Set(['joy_stk_phu', 'joy_keywords', 'joy_family_groups', 'joy_ignored_tx', 'joy_packages']);
+          const done = new Set(['joy_stk_phu', 'joy_keywords', 'joy_family_groups', 'joy_ignored_tx', 'joy_packages', 'joy_suspended', 'joy_fee_adjustments', 'joy_referrals']);
           for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
             if (k && k.startsWith('joy_') && !done.has(k)) {

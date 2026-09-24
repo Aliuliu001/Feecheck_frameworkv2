@@ -1120,6 +1120,58 @@
           </div>
         </div>
 
+        <div class="settings-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="margin: 0;">🎁 Giới thiệu bạn mới <span class="count-badge" x-text="(referralData || []).length"></span></h4>
+            <button class="btn btn-sm btn-primary" @click="addReferralUI()">➕ Thêm giới thiệu</button>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">PH giới thiệu HS mới → sau 3 tháng HS mới học → PH được giảm (mặc định -400k). Hệ thống tự nhắc khi đủ 3 tháng.</p>
+          <template x-if="(referralAlerts || []).length">
+            <div style="background: #FFF8E1; border: 1px solid #FFE082; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; font-size: 14px;">
+              <strong>🎁 Đủ 3 tháng, cần trừ tiền tháng này:</strong>
+              <template x-for="r in referralAlerts" :key="r.id">
+                <div>• <strong x-text="r.mshs"></strong> giới thiệu <strong x-text="r.referredMSHS"></strong> — trừ <strong x-text="$formatCurrency(r.amount)"></strong>
+                  <button class="btn btn-sm btn-primary" style="margin-left: 8px;" @click="confirmReferral(r.id)">✅ Xác nhận đã báo PH</button>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div class="table-container compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>PH được giảm</th>
+                  <th>HS mới</th>
+                  <th>Bắt đầu</th>
+                  <th>Giảm từ</th>
+                  <th>Số tiền</th>
+                  <th>Trạng thái</th>
+                  <th style="width: 110px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!(referralData || []).length">
+                  <tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</td></tr>
+                </template>
+                <template x-for="r in (referralData || [])" :key="r.id">
+                  <tr>
+                    <td x-text="r.mshs"></td>
+                    <td x-text="r.referredMSHS"></td>
+                    <td style="white-space: nowrap;" x-text="r.startMonth"></td>
+                    <td style="white-space: nowrap;" x-text="r.applyMonth"></td>
+                    <td style="text-align: right; font-weight: 600; white-space: nowrap;" x-text="$formatCurrency(r.amount)"></td>
+                    <td x-text="r.confirmed ? '✅ Đã xác nhận' : '⏳ Chờ đủ 3 tháng'"></td>
+                    <td style="white-space: nowrap;">
+                      <button x-show="!r.confirmed" class="btn btn-sm btn-primary" @click="confirmReferral(r.id)" title="Xác nhận">✅</button>
+                      <button class="btn btn-sm btn-danger" @click="deleteReferral(r.id)" title="Xóa">✕</button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="mt-4">
           <h3>💾 Backup & Khôi phục</h3>
           <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">⚠️ Dữ liệu gán MSHS lưu trong trình duyệt (máy này). Refresh/Ctrl+Shift+R <strong>không mất</strong>, nhưng đổi máy / xóa cache sẽ mất. Nên tải backup sau mỗi lần gán xong.</p>
@@ -1132,6 +1184,34 @@
             </label>
           </div>
           <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">📌 JSON = để khôi phục lại vào app. Excel = để mở coi/in/lưu trữ, không khôi phục ngược được.</p>
+        </div>
+
+        <div class="settings-section" style="margin-top: 24px;">
+          <h4 style="margin-bottom: 8px;">📜 Lịch sử thao tác <span class="count-badge" x-text="(historyData || []).length"></span></h4>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">30 thao tác gần nhất (thêm/xóa nhóm, gói, điều chỉnh, giới thiệu, tạm ngưng...).</p>
+          <div class="table-container compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 150px;">Thời gian</th>
+                  <th style="width: 220px;">Thao tác</th>
+                  <th>Chi tiết</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!(historyData || []).length">
+                  <tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">Chưa có thao tác nào</td></tr>
+                </template>
+                <template x-for="h in (historyData || [])" :key="h.date + (h.action || '')">
+                  <tr>
+                    <td style="font-size: 13px; white-space: nowrap;" x-text="$formatDate(h.date)"></td>
+                    <td x-text="h.action"></td>
+                    <td class="wrap" x-text="h.detail"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -1323,6 +1403,44 @@
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
         <button @click="showAssignModal = false" class="btn btn-secondary">Hủy</button>
         <button @click="confirmAssign()" class="btn btn-primary">✅ Xác nhận gán</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm nhóm Gia đình (form 1 lần 4 ô như bản cũ) -->
+  <div x-show="showFamilyModal"
+       x-transition
+       @click.self="showFamilyModal = false"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">👨‍👩‍👧 Thêm Nhóm Gia đình</h3>
+        <button @click="showFamilyModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Tên nhóm (gợi nhớ) *</label>
+        <input type="text" x-model="familyForm.groupName" placeholder="VD: Nhà Cô Lan"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Danh sách MSHS của các con (bắt buộc) *</label>
+        <input type="text" x-model="familyForm.membersRaw" placeholder="Cách nhau dấu phẩy (VD: HV011, HV012)"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Tên PH / Chủ tài khoản (tùy chọn)</label>
+        <input type="text" x-model="familyForm.tenPH" placeholder="Tên phụ huynh nếu biết"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">STK Đại diện (tùy chọn)</label>
+        <input type="text" x-model="familyForm.stk" placeholder="Bỏ trống nếu CK qua TPBank/Zalo"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Khi phụ huynh này CK, hệ thống sẽ tự chia đều cho các MSHS trên dựa theo mức học phí của từng bé.<br>💡 Chỉ cần nhập MSHS là đủ. Tên PH và STK là thông tin bổ sung, không bắt buộc.</p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button @click="showFamilyModal = false" class="btn btn-secondary">Hủy</button>
+        <button @click="confirmFamilyGroup()" class="btn btn-primary">✅ Thêm nhóm</button>
       </div>
     </div>
   </div>
