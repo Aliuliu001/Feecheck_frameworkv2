@@ -497,8 +497,28 @@ function appComponent() {
       if (!q) return students.slice(0, 50);
       return students.filter(s =>
         (s.mshs || '').toLowerCase().includes(q) ||
-        (s.fullName || '').toLowerCase().includes(q)
+        (s.fullName || '').toLowerCase().includes(q) ||
+        (s.className || '').toLowerCase().includes(q)
       ).slice(0, 50);
+    },
+
+    // Tra cứu tên + lớp từ MSHS (dùng cho bảng Gói, gợi ý gán — phân biệt HS trùng tên bằng Lớp)
+    studentByMshs(mshs) {
+      const students = (this.$store && this.$store.appState && this.$store.appState.students) || [];
+      return students.find(s => s.mshs === mshs) || null;
+    },
+
+    studentClass(mshs) {
+      const s = this.studentByMshs(mshs);
+      return s ? (s.className || '') : '';
+    },
+
+    pkgMemberNames(members) {
+      if (!members || !members.length) return '';
+      return members.map(m => {
+        const s = this.studentByMshs(m);
+        return s ? (s.fullName || m) : m;
+      }).join(', ');
     },
 
     confirmAssign() {
