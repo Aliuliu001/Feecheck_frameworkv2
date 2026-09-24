@@ -138,6 +138,49 @@ function appComponent() {
     pickOpen: '',
     showSuspendModal: false,
     suspendForm: { mshs: '', className: '', note: '' },
+    showMissingNoteModal: false,
+    missingNoteStudent: { mshs: '', name: '' },
+    missingNoteForm: { type: 'Giới thiệu học sinh mới (-400k)', note: '' },
+    openMissingNote(row) {
+      this.missingNoteStudent = { mshs: row.mshs || '', name: row.fullName || '' };
+      this.missingNoteForm = { type: 'Giới thiệu học sinh mới (-400k)', note: '' };
+      this.showMissingNoteModal = true;
+    },
+    confirmMissingNote() {
+      const mshs = this.missingNoteStudent.mshs;
+      const type = this.missingNoteForm.type;
+      const noteText = (this.missingNoteForm.note || '').trim();
+      if (!mshs) { this.showToast('⚠️ Lỗi học sinh', 'error'); return; }
+      if (type.includes('Giới thiệu')) {
+        if (window.Storage.addReferral) {
+          const res = window.Storage.addReferral({
+            mshs: mshs,
+            referredMSHS: noteText || 'HS_MOI',
+            startMonth: this.$store.appState.monthYear || '2026-09',
+            amount: -400000
+          });
+          if (res && res.error) {
+            this.showToast('⚠️ ' + res.error, 'warning');
+          } else {
+            this.showToast('✅ Đã tạo ghi chú giới thiệu thành công!', 'success');
+          }
+        }
+      } else {
+        if (window.Storage.addFeeAdjustment) {
+          window.Storage.addFeeAdjustment({
+            mshs: mshs,
+            type: type,
+            amount: -400000,
+            monthYear: this.$store.appState.monthYear || '',
+            note: noteText
+          });
+          this.showToast('✅ Đã thêm ghi chú ưu đãi/đóng thiếu!', 'success');
+        }
+      }
+      this.showMissingNoteModal = false;
+      this.loadSettingsUI();
+      this.runMatching();
+    },
 
     init() {
       // Set default month
@@ -159,7 +202,10 @@ function appComponent() {
       this.familyGroups = window.Storage.loadFamilyGroups() || [];
       this.packageData = window.Storage.loadPackages() || [];
       this.adjustmentData = window.Storage.loadFeeAdjustments ? (window.Storage.loadFeeAdjustments() || []) : [];
-      this.referralData = window.Storage.loadReferrals ? (window.Storage.loadReferrals() || []) : [];
+      this.referralData = [...(window.Storage.loadReferrals ? (window.Storage.loadReferrals() || []) : [])].sort((a, b) => {
+        if (a.confirmed !== b.confirmed) return a.confirmed ? 1 : -1;
+        return new Date(b.createdDate || 0) - new Date(a.createdDate || 0);
+      });
       this.historyData = window.Storage.loadHistory ? (window.Storage.loadHistory() || []).slice(0, 30) : [];
       this.checkPendingReferrals();
     },
@@ -660,7 +706,59 @@ function appComponent() {
       this.showToast('↩️ Đã hoàn tác', 'success');
     },
 
-    // Xóa mapping sai (STK / keyword) rồi chạy lại đối soát
+    // Xóa mapping sai (STK / keyword) rồi chạy lại toàn bộ từ sao kê gốc → hiệu lực ngay
+    // Sửa mapping: form 1 lần (MSHS + Từ khóa/STK + Tên), lưu xong chạy lại → hiệu lực ngay, không refresh/import lại
+    editMappingKey: '',
+    editMappingType: '',
+    editMappingForm: { mshs: '', key: '', tenTK: '' },
+    showEditMappingModal: false,
+    editStkMapping(stk) {
+      const item = (window.Storage.loadSTKPhu() || []).find(x => x.stk === stk);
+      if (!item) { this.showToast('⚠️ Không tìm thấy mapping này', 'error'); return; }
+      this.editMappingType = 'stk';
+      this.editMappingKey = stk;
+      this.editMappingForm = { mshs: item.mshs || '', key: item.stk || '', tenTK: item.tenTK || '' };
+      this.pickOpen = '';
+      this.showEditMappingModal = true;
+    },
+    editKeywordMapping(keyword) {
+      const item = (window.Storage.loadKeywords() || []).find(x => x.keyword === keyword);
+      if (!item) { this.showToast('⚠️ Không tìm thấy từ khóa này', 'error'); return; }
+      this.editMappingType = 'keyword';
+      this.editMappingKey = keyword;
+      this.editMappingForm = { mshs: item.mshs || '', key: item.keyword || '', tenTK: item.tenHS || '' };
+      this.pickOpen = '';
+      this.showEditMappingModal = true;
+    },
+    confirmEditMapping() {
+      const students = (this.$store && this.$store.appState && this.$store.appState.students) || [];
+      const mshs = (this.editMappingForm.mshs || '').trim().toUpperCase();
+      if (!mshs) { this.showToast('⚠️ Chưa chọn MSHS', 'error'); return; }
+      const found = students.find(s => s.mshs === mshs);
+      if (!found) { this.showToast(`⚠️ Không tìm thấy MSHS ${mshs} trong DS học sinh`, 'error'); return; }
+      if (this.editMappingType === 'stk') {
+        const newStk = (this.editMappingForm.key || '').trim();
+        if (!newStk) { this.showToast('⚠️ STK không được trống', 'error'); return; }
+        window.Storage.removeSTKPhu(this.editMappingKey);
+        window.Storage.addSTKPhu({ mshs, stk: newStk, tenTK: (this.editMappingForm.tenTK || '').trim() });
+        window.Storage.addHistory && window.Storage.addHistory({ action: 'Sửa STK Phụ', detail: `${this.editMappingKey} → ${newStk} (${mshs})` });
+      } else {
+        const newKw = (this.editMappingForm.key || '').trim().toUpperCase();
+        if (!newKw) { this.showToast('⚠️ Từ khóa không được trống', 'error'); return; }
+        if (window.Utils && window.Utils.isWeakKeyword && window.Utils.isWeakKeyword(newKw)) {
+          this.showToast(`⚠️ Từ khóa "${newKw}" chung chung quá (giống CK nhiều nhà) — sửa lại thành tên người gửi. Dữ liệu đã nhập vẫn giữ nguyên.`, 'error');
+          return;
+        }
+        window.Storage.removeKeyword(this.editMappingKey);
+        window.Storage.addKeyword({ keyword: newKw, mshs, tenHS: found.fullName || '' });
+        window.Storage.addHistory && window.Storage.addHistory({ action: 'Sửa Từ khóa TPB', detail: `"${this.editMappingKey}" → "${newKw}" (${mshs})` });
+      }
+      this.showEditMappingModal = false;
+      this.editMappingKey = ''; this.editMappingType = '';
+      this.loadSettingsUI();
+      this.runMatching();
+      this.showToast('✅ Đã lưu sửa đổi, đối soát chạy lại ngay', 'success');
+    },
     deleteStkMapping(stk) {
       if (!confirm(`Xóa mapping STK ${stk}? GD liên quan sẽ quay lại Ngoại lệ.`)) return;
       window.Storage.removeSTKPhu(stk);

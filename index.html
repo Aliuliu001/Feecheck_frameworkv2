@@ -461,6 +461,7 @@
                 <td class="wrap" x-text="row.ghiChu" style="font-size: 0.85rem; color: var(--text-secondary); max-width: 250px;"></td>
                 <td style="white-space: nowrap;">
                   <button class="btn btn-xs btn-outline" title="Thêm gia đình" @click="addFamilyGroupForStudent(row.mshs, row.fullName)">➕</button>
+                  <button class="btn btn-xs btn-outline" title="Ghi chú lý do đóng thiếu / ưu đãi" @click="openMissingNote(row)">📝</button>
                   <button class="btn btn-xs btn-outline" title="Tạm ngưng" @click="quickSuspend(row.mshs, row.fullName)">⏸️</button>
                 </td>
               </tr>
@@ -944,7 +945,7 @@
                   <th style="width: 24%;">STK</th>
                   <th>Tên TK</th>
                   <th style="width: 15%;">Ngày gán</th>
-                  <th style="width: 60px;"></th>
+                  <th style="width: 100px;"></th>
                 </tr>
               </thead>
               <tbody>
@@ -959,7 +960,10 @@
                     <td style="font-family: monospace; font-weight: 600;" x-text="item.stk"></td>
                     <td x-text="item.tenTK"></td>
                     <td style="font-size: 13px; white-space: nowrap;" x-text="$formatDate(item.addedDate)"></td>
-                    <td><button class="btn btn-sm btn-danger" @click="deleteStkMapping(item.stk)" title="Xóa mapping sai">✕</button></td>
+                    <td style="white-space: nowrap;">
+                      <button class="btn btn-sm btn-outline" @click="editStkMapping(item.stk)" title="Sửa mapping">✏️</button>
+                      <button class="btn btn-sm btn-danger" @click="deleteStkMapping(item.stk)" title="Xóa mapping sai">✕</button>
+                    </td>
                   </tr>
                 </template>
               </tbody>
@@ -980,7 +984,7 @@
                   <th style="width: 20%;">MSHS</th>
                   <th>Tên HS</th>
                   <th style="width: 15%;">Ngày gán</th>
-                  <th style="width: 60px;"></th>
+                  <th style="width: 100px;"></th>
                 </tr>
               </thead>
               <tbody>
@@ -995,7 +999,10 @@
                     <td><span class="status-badge badge-default" style="font-size: 13px;" x-text="item.mshs"></span></td>
                     <td x-text="item.tenHS"></td>
                     <td style="font-size: 13px; white-space: nowrap;" x-text="$formatDate(item.addedDate)"></td>
-                    <td><button class="btn btn-sm btn-danger" @click="deleteKeywordMapping(item.keyword)" title="Xóa keyword sai">✕</button></td>
+                    <td style="white-space: nowrap;">
+                      <button class="btn btn-sm btn-outline" @click="editKeywordMapping(item.keyword)" title="Sửa từ khóa">✏️</button>
+                      <button class="btn btn-sm btn-danger" @click="deleteKeywordMapping(item.keyword)" title="Xóa keyword sai">✕</button>
+                    </td>
                   </tr>
                 </template>
               </tbody>
@@ -1727,6 +1734,84 @@
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
         <button @click="showSuspendModal = false" class="btn btn-secondary">Hủy</button>
         <button @click="confirmSuspend()" class="btn btn-primary">⏸️ Tạm ngưng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Sửa Mapping (STK Phụ hoặc Từ khóa TPBank) -->
+  <div x-show="showEditMappingModal"
+       x-transition
+       @click.self="showEditMappingModal = false"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;" x-text="editMappingType === 'stk' ? '✏️ Sửa STK Phụ' : '✏️ Sửa Từ khóa TPBank'"></h3>
+        <button @click="showEditMappingModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+      </div>
+      <div style="margin-bottom: 12px; position: relative;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">MSHS của học sinh *</label>
+        <input type="text" x-model="editMappingForm.mshs" placeholder="Gõ tên/MSHS/lớp rồi bấm chọn"
+               @focus="pickOpen = 'edit_mshs'" @input="pickOpen = 'edit_mshs'"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; text-transform: uppercase;">
+        <template x-if="pickOpen === 'edit_mshs' && pickSuggestions().length">
+          <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <template x-for="s in pickSuggestions()" :key="s.mshs">
+              <div @click="pickStudent(s.mshs); editMappingForm.mshs = s.mshs; pickOpen = ''" style="padding: 8px 12px; cursor: pointer; font-size: 14px;"
+                   x-text="s.mshs + ' — ' + s.fullName + (s.className ? ' — ' + s.className : '')"></div>
+            </template>
+          </div>
+        </template>
+        <template x-if="previewOne(editMappingForm.mshs)">
+          <div style="margin-top: 6px; font-size: 13px; color: #2E7D32;" x-text="'✓ ' + previewOne(editMappingForm.mshs).fullName + (previewOne(editMappingForm.mshs).className ? ' — ' + previewOne(editMappingForm.mshs).className : '')"></div>
+        </template>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;" x-text="editMappingType === 'stk' ? 'Số tài khoản *' : 'Từ khóa TPBank *'"></label>
+        <input type="text" x-model="editMappingForm.key"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;" x-text="editMappingType === 'stk' ? 'Tên tài khoản' : 'Tên học sinh'"></label>
+        <input type="text" x-model="editMappingForm.tenTK"
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button @click="showEditMappingModal = false" class="btn btn-secondary">Hủy</button>
+        <button @click="confirmEditMapping()" class="btn btn-primary">💾 Lưu sửa đổi (Áp dụng ngay)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ghi chú lý do Đóng thiếu / Ưu đãi -->
+  <div x-show="showMissingNoteModal"
+       x-transition
+       @click.self="showMissingNoteModal = false"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="card glass-card" @click.stop style="max-width: 520px; width: 92%; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">📝 Ghi chú lý do Đóng thiếu / Ưu đãi</h3>
+        <button @click="showMissingNoteModal = false" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Học sinh: <span style="color: var(--primary);" x-text="missingNoteStudent.mshs + ' — ' + missingNoteStudent.name"></span></label>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Loại ghi chú / Ưu đãi</label>
+        <select x-model="missingNoteForm.type"
+                style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+          <option value="Giới thiệu học sinh mới (-400k)">Giới thiệu học sinh mới (-400k) — tự động tạo bên Giới thiệu</option>
+          <option value="Hỗ trợ học phí / Giảm đặc biệt">Hỗ trợ học phí / Giảm đặc biệt</option>
+          <option value="Ghi chú tay (không đổi số tiền)">Ghi chú tay (không đổi số tiền)</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px;">Nội dung chi tiết / Lý do</label>
+        <input type="text" x-model="missingNoteForm.note" placeholder="VD: Giới thiệu bé Nguyễn Văn A tháng này..."
+               style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px;">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button @click="showMissingNoteModal = false" class="btn btn-secondary">Hủy</button>
+        <button @click="confirmMissingNote()" class="btn btn-primary">✅ Lưu ghi chú & Cập nhật</button>
       </div>
     </div>
   </div>
