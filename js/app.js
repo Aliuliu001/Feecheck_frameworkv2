@@ -190,6 +190,11 @@ function appComponent() {
       // Load UI settings
       this.loadSettingsUI();
       this.ignoredKeys = window.Storage._get('joy_ignored_tx') || [];
+      // P1-3: nạp lại Tab7 Tổng hợp đã lưu từ lần trước
+      try {
+        const savedTab7 = window.Storage._get('joy_acc_tab7_rows', []);
+        if (savedTab7 && savedTab7.length) this.$store.appState.accountingData.tab7 = savedTab7;
+      } catch (e) { console.error('Tab7 load error:', e); }
     },
 
     loadSettingsUI() {
@@ -1105,6 +1110,33 @@ function appComponent() {
     exportAllAccountingTabs() {
       const state = this.$store.appState;
       window.Exporter.exportAccTabAll(state.accountingData, state.monthYear, state.accTab7FilterTags);
+    },
+
+    // P1-3: xóa 1 dòng / xóa hết Tab7 (có lưu ngay)
+    removeAccTab7Row(idx) {
+      const state = this.$store.appState;
+      state.accountingData.tab7.splice(idx, 1);
+      window.Storage._set('joy_acc_tab7_rows', state.accountingData.tab7);
+      this.showToast('✅ Đã xóa dòng', 'success');
+    },
+    clearAccTab7() {
+      if (!confirm('Xóa hết Tab Tổng hợp?')) return;
+      this.$store.appState.accountingData.tab7 = [];
+      window.Storage._set('joy_acc_tab7_rows', []);
+      this.showToast('✅ Đã xóa hết Tab Tổng hợp', 'success');
+    },
+
+    // P1-2: xuất DS nhắc PH + DS STK phụ
+    exportNhacPH() {
+      const state = this.$store.appState;
+      const list = window.Accounting.generateNhacPH(state.reportRows || []);
+      if (!list.length) { this.showToast('Không có ai cần nhắc', 'info'); return; }
+      window.Exporter.exportNhacPH(list, state.monthYear);
+      this.showToast(`✅ Đã xuất ${list.length} PH cần nhắc`, 'success');
+    },
+    exportSTKPhu() {
+      window.Exporter.exportSTKPhu(window.Storage.loadSTKPhu(), this.$store.appState.students);
+      this.showToast('✅ Đã xuất DS STK phụ', 'success');
     },
     
     // Tab 4 (Stop) specific
